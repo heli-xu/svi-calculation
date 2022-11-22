@@ -36,13 +36,17 @@ var_cal$x2020_table_field_calculation[29] <- "(E_POV150 /S1701_C01_001E) * 100"
 
 #extract variables from calculation
 var_cal <- var_cal %>% 
-  mutate(census_var = str_replace_all(x2020_table_field_calculation,
+  mutate(
+    x2020_table_field_calculation = str_replace_all(x2020_table_field_calculation, "\r\n",""),
+    #pdf to excel introduce line breaks, not visible in view
+    census_var = str_replace_all(x2020_table_field_calculation,
                                       "[^[:alnum:][:blank:]_]",
                                       ""))
 
-#remember this table still has x and NA, but calculation is complete and matching variable
+#remember this table still has x and NA, 
+#but for E_ and EP_,calculation is complete and matching variable
 #so you could safely filter out x when needed
-write_csv(var_cal, file = "data/var_formular.csv")
+
 
 
 #make a function to pull variables from each theme 
