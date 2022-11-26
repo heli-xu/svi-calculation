@@ -118,6 +118,14 @@ pa_co_var3 <- pa_co_var2 %>%
   pivot_longer(3:18,
     names_to = "svi_var",
     values_to = "value") %>% 
-  separate(NAME, into = c("county", "state"), sep = ",") %>% 
-  
+  separate(NAME, into = c("county", "state"), sep = ",") 
+
+
+pa_co_pct1 <- pa_co_var3 %>% 
+  group_by(svi_var) %>% 
+  mutate(rank = rank(value))
+
+
+
+
   
