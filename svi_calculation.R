@@ -109,33 +109,49 @@ pa_co_var2 <-
   #keep the new columns, GEOID, CO+STATE
   select(GEOID, NAME, E_var_name, EP_var_name) 
 
-#as a check to cdc published data in pa at county level
-#PA_2020_svi_co <- read_csv("2020svi_pa_co_cdc.csv")
+pa_co_var2 <- pa_co_var2 %>% 
+  separate(NAME, into = c("county", "state"), sep = ",")
 
-# PA_2020_svi_co$EP_LIMENG == pa_co_var2$EP_LIMENG
-# not exactly identical, because rounded numbers after digit point
+#as a check to cdc published data in pa at county level
+PA_2020_svi_co <- read_csv("2020svi_pa_co_cdc.csv")
+
+PA_2020_svi_co$EP_LIMENG == pa_co_var2$EP_LIMENG
+# *NOT* exactly identical, because rounded numbers after digit point
+#CDC only keeps one digit after decimal
 
 # calculate rankings with tidy form data (on EP_)-----------------------------
 options(scipen=999) #disable scientific notation
 
 pa_co_var3 <- pa_co_var2 %>% 
   select(-all_of(E_var_name)) %>%   #tidyselect, column or external vector
-  pivot_longer(!c(GEOID,NAME),   #all but GEOID and NAME- no need to know total columns
+  pivot_longer(!c(GEOID,county,state),   #all but GEOID and co/st- no need to know total columns
     names_to = "svi_var",
-    values_to = "value") %>% 
-  separate(NAME, into = c("county", "state"), sep = ",") 
+    values_to = "value") 
+  #separate(NAME, into = c("county", "state"), sep = ",") 
 
 # Calculate pct_rank of each variable (EP_)------------------------------------
 ## note for 2020, PCI(income) changed into housing cost burden--no need to reverse 
 pa_co_pct1 <- pa_co_var3 %>%
   group_by(svi_var) %>%
-  mutate(rank =  rank(-value, ties.method = "min")) %>% 
+  mutate(rank =  rank(value, ties.method = "min")) %>% 
   #check out count() "wt" arg, if NULL, count rows
   add_count(svi_var) %>%  
-  mutate(EPL_var = (rank-1)/(n-1)) %>% 
+  mutate(EPL_var = (rank-1)/(n-1),
+    EPL_var = round(EPL_var, 4)) %>%
   ungroup()
 
-# Calculate pct_rank of each domain/theme--------------------------------------
+##check EPL with cdc data
+PA_2020_svi_co %>% 
+  filter(COUNTY == "Adams County") %>% 
+  select(COUNTY, EP_POV150, EPL_POV150)
+
+pa_co_pct1 %>% 
+  filter(county=="Adams County",
+    svi_var == "EP_POV150")
+
+
+
+# Calculate sum of pct_rank in each domain/theme (SPL_x)--------------------------------------
 ## set up xwalk from EP_var or originally, var_cal_table
 xwalk_theme_var <- EP_var %>% 
   select(-x2020_table_field_calculation) %>% 
@@ -143,14 +159,99 @@ xwalk_theme_var <- EP_var %>%
 
 pa_co_pct2 <- pa_co_pct1 %>% 
   left_join(xwalk_theme_var, by = "svi_var") %>% 
-  group_by
-  
+  group_by(theme, county, GEOID, state) %>%  #GEOID and state just there to keep the column
+  summarise(SPL_theme = sum(EPL_var)) %>% 
+  ungroup()
 
+
+##check with cdc data
+PA_2020_svi_co %>% 
+  filter(COUNTY == "Adams County") %>% 
+  select(COUNTY, SPL_THEME1, SPL_THEME2, SPL_THEME3, SPL_THEME4) 
+
+
+pa_co_pct2 %>% 
+  filter(county == "Adams County",
+    svi_var%in%all_of(EP_var_name))
+##not match (especially in theme4)
+##go back to EPL, and then EP--the one digit after decimal problem from above
 
 PA_2020_svi_co %>% 
   filter(COUNTY == "Adams County") %>% 
-  select(EP_POV150, EPL_POV150)
+  select(COUNTY, EP_MUNIT,
+    EP_MOBILE,
+    EP_CROWD,
+    EP_NOVEH,
+    EP_GROUPQ) 
 
-pa_co_pct1 %>% 
-  filter(county=="Adams County")
+pa_co_pct2 %>% 
+  filter(county == "Adams County",
+    svi_var%in%all_of(EP_var_name),
+    theme == 4)
+
+# Calculate pct_rank of each domain/theme (RPL_x)--------------------------------------
+## summarised table, no longer contain individual svi_var info
+pa_co_pct3 <- pa_co_pct2  %>% 
+  group_by(theme) %>% 
+  mutate(rank_theme = rank(SPL_theme, ties.method = "min")) %>% 
+  add_count(theme) %>%  #rows per group, count the group_by param
+  mutate(RPL_theme = (rank_theme-1)/(n-1),
+    RPL_theme = round(RPL_theme, 4)) %>% 
+  ungroup()
   
+##sanity check
+x<- PA_2020_svi_co %>% 
+  filter(COUNTY == "Adams County") %>% 
+  select(COUNTY, RPL_THEME1, RPL_THEME2,
+    RPL_THEME3, RPL_THEME4)
+
+pa_co_pct3 %>% 
+  filter(county== "Adams County")
+
+# Calculate sum of SPL_ of all domains/themes ----------------------------------
+pa_co_pct4 <- pa_co_pct3 %>% 
+  group_by(county, GEOID, state) %>% 
+  summarise(SPL_themes = sum(SPL_theme),
+    .groups = "drop") %>% 
+  # ungroup() %>% 
+  add_count() %>% 
+  mutate(rank_themes = rank(SPL_themes, ties.method = "min"),
+   RPL_themes = (rank_themes-1)/(n-1),
+      RPL_themes = round(RPL_themes, 4))
+
+## sanity check    
+PA_2020_svi_co %>% 
+  filter(COUNTY == "Adams County") %>% 
+  select(COUNTY, SPL_THEMES, RPL_THEMES)
+    
+# Construct a wide form complied data -----------------------------------------
+##pa_co_var2 contains wide form data up to EP_
+EPL_var <- 
+  pa_co_pct1 %>% 
+  mutate(EPL_var_name = paste0("EPL_", str_remove(svi_var, "EP_")),
+    .before = EPL_var) %>% 
+  select(-c(svi_var, value, rank, n)) %>% 
+  pivot_wider(names_from = EPL_var_name,
+    values_from = EPL_var)
+
+SPL_theme <- pa_co_pct2 %>% 
+  pivot_wider(names_from = theme,
+    names_prefix = "SPL_theme",
+    values_from = SPL_theme)
+
+RPL_theme <- pa_co_pct3 %>% 
+  select(-c(SPL_theme, rank_theme, n)) %>% 
+  pivot_wider(names_from = theme,
+    names_prefix = "RPL_theme",
+    values_from = RPL_theme)
+    
+SPL_RPL_themes <- pa_co_pct4 %>% 
+  select(-c(n, rank_themes)) 
+
+svi_complete <- list(pa_co_var2, EPL_var, SPL_theme, RPL_theme, SPL_RPL_themes) %>% 
+  reduce(left_join, by = c("GEOID", "county","state")) 
+#GEOID suffice, adding co/st to avoid non-joining duplicate columns 
+    
+    
+    
+    
