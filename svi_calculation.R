@@ -22,6 +22,8 @@ pa_co_raw <- get_acs(
   output = "wide"
 )
 
+saveRDS(pa_co_raw, file = "data/pa_co_raw_2020.rds")
+
 # Extract named vector from val_cal_table (don't run)------------
 var_name <- var_cal_table$x2020_variable_name
 
@@ -88,7 +90,7 @@ EP_var_name <- EP_var$x2020_variable_name
 EP_var_expr <- EP_var$x2020_table_field_calculation
 names(EP_var_expr) <- EP_var_name
 
-## iterate with E_ vector and THEN EP_ vector
+## iterate with E_ vector and THEN EP_ vector 
 pa_co_var <- 
   map2_dfc(E_var_name, E_var_expr, function(E_var_name, E_var_expr){
     pa_co_raw %>% 
@@ -97,6 +99,7 @@ pa_co_var <-
       )
   }) %>% 
   bind_cols(pa_co_raw, .) 
+#cannot select columns, because they may be needed for later
 
 pa_co_var2 <- 
   map2(EP_var_name, EP_var_expr, function(EP_var_name, EP_var_expr){
@@ -107,10 +110,10 @@ pa_co_var2 <-
   }) %>% 
       bind_cols(pa_co_var, .) %>% 
   #keep the new columns, GEOID, CO+STATE
-  select(GEOID, NAME, E_var_name, EP_var_name) 
-
-pa_co_var2 <- pa_co_var2 %>% 
+  select(GEOID, NAME, all_of(E_var_name), all_of(EP_var_name)) %>% 
   separate(NAME, into = c("county", "state"), sep = ",")
+
+
 
 #as a check to cdc published data in pa at county level
 PA_2020_svi_co <- read_csv("2020svi_pa_co_cdc.csv")
@@ -225,7 +228,8 @@ PA_2020_svi_co %>%
   select(COUNTY, SPL_THEMES, RPL_THEMES)
     
 # Construct a wide form complied data -----------------------------------------
-##pa_co_var2 contains wide form data up to EP_
+##pa_co_var2 = E_ data and EP_ data
+
 EPL_var <- 
   pa_co_pct1 %>% 
   mutate(EPL_var_name = paste0("EPL_", str_remove(svi_var, "EP_")),
