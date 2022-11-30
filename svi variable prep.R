@@ -63,7 +63,7 @@ var_cal2 <-
 var_cal_eep <- var_cal2 %>% 
   select(-census_var)
 
-saveRDS(var_cal_eep, file = "data/variable_e_ep_calculation.rds")
+saveRDS(var_cal_eep, file = "data/variable_e_ep_calculation_2020.rds")
 
 
 #make a function to pull variables from each theme 
@@ -85,7 +85,7 @@ var_list <- map(0:5, theme_var_df)
 #name elements in the list by theme (t0 = total, t5 = adjunct)
 names(var_list) <- c("t0","t1","t2","t3","t4","t5")
 
-saveRDS(var_list, "data/census_variables.rds")  
+saveRDS(var_list, "data/census_variables_2020.rds")  
 
 
 
@@ -94,8 +94,7 @@ saveRDS(var_list, "data/census_variables.rds")
 #(E_ and EP_ have to be processed seperately, in order)
 
 
-# construct a xwalk for theme and variable
-xwalk_theme_var <- var_cal2 %>% 
-  select(-x2020_table_field_calculation)
+# construct a xwalk for theme and variable (moved to calculation script)
+# xwalk_theme_var <- var_cal2 %>% 
+#   select(-x2020_table_field_calculation)
 
-saveRDS(xwalk_theme_var, file = "data/xwalk_theme_var.rds")  
