@@ -3,12 +3,12 @@ library(tidyverse)
 
 
 # Load variables needed ----------------------------------
-var_list <- readRDS("data/census_variables.rds") %>% 
+var_list <- readRDS("data/census_variables_2018.rds") %>% 
   unlist() %>% #autofill names for each string in the vector
   unname() #get rid of names --otherwise will rename the column in census pull
 
 # Load table for calculation and XWALK for theme--------------------------
-var_cal_table <- readRDS("data/variable_e_ep_calculation.rds")
+var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds")
 
 
 
@@ -17,22 +17,24 @@ var_cal_table <- readRDS("data/variable_e_ep_calculation.rds")
 pa_co_raw <- get_acs(
   geography = "county",
   state = "PA",
-  year = 2020,
+  year = 2018,
   variables = var_list,
   output = "wide"
 )
 
-saveRDS(pa_co_raw, file = "data/pa_co_raw_2020.rds")
+saveRDS(pa_co_raw, file = "data/pa_co_raw_2018.rds")
+
+pa_co_raw <- readRDS("data/pa_co_raw_2018.rds")
 
 # Extract named vector from val_cal_table (don't run)------------
-var_name <- var_cal_table$x2020_variable_name
+var_name <- var_cal_table$x2018_variable_name
 
-var_expr <- var_cal_table$x2020_table_field_calculation
+var_expr <- var_cal_table$x2018_table_field_calculation
 
 names(var_expr) <- var_name
 
 
-var_expr["EP_ASIAN"]  
+var_expr["EP_MINRTY"]  
 
 
 
@@ -69,36 +71,53 @@ df <-
   }) %>% 
   bind_cols(pa_co_raw, .) #to avoid duplicating rows
 
-# Create svi variables with iteration (theme0-4)--------------------------------
+# Create svi variables with iteration (theme0-4)-----------------------------------
+## set up theme 0 vector, because sometimes other E_var calculation refer to them
+var_0 <- var_cal_table %>% 
+  filter(theme == 0)
+
+var_0_name <- var_0$x2018_variable_name
+var_0_expr <- var_0$x2018_table_field_calculation
+names(var_0_expr) <- var_0_name
+
 ## set up E_ vector
 E_var <- 
   var_cal_table %>% 
-  filter(theme%in%c(0:4),
-    str_detect(x2020_variable_name, "E_")) 
+  filter(theme%in%c(1:4),
+    str_detect(x2018_variable_name, "E_")) 
 
-E_var_name <- E_var$x2020_variable_name
-E_var_expr <- E_var$x2020_table_field_calculation
+E_var_name <- E_var$x2018_variable_name
+E_var_expr <- E_var$x2018_table_field_calculation
 names(E_var_expr) <- E_var_name
 
 ## set up EP_ vector
 EP_var <-
   var_cal_table %>% 
-  filter(theme%in%c(0:4),
-  str_detect(x2020_variable_name, "EP_"))
+  filter(theme%in%c(1:4),
+  str_detect(x2018_variable_name, "EP_"))
 
-EP_var_name <- EP_var$x2020_variable_name
-EP_var_expr <- EP_var$x2020_table_field_calculation
+EP_var_name <- EP_var$x2018_variable_name
+EP_var_expr <- EP_var$x2018_table_field_calculation
 names(EP_var_expr) <- EP_var_name
 
 ## iterate with E_ vector and THEN EP_ vector 
+pa_co_var0 <- 
+  map2_dfc(var_0_name, var_0_expr, function(var_0_name, var_0_expr){
+    pa_co_raw %>% 
+      transmute(
+        !!all_of(var_0_name) := eval(str2lang(var_0_expr))
+      )
+  }) %>% 
+  bind_cols(pa_co_raw, .) 
+  
 pa_co_var <- 
   map2_dfc(E_var_name, E_var_expr, function(E_var_name, E_var_expr){
-    pa_co_raw %>% 
+    pa_co_var0 %>% 
       transmute(
         !!all_of(E_var_name) := eval(str2lang(E_var_expr))
       )
   }) %>% 
-  bind_cols(pa_co_raw, .) 
+  bind_cols(pa_co_var0, .) 
 #cannot select columns, because they may be needed for later
 
 pa_co_var2 <- 
@@ -116,15 +135,15 @@ pa_co_var2 <-
 
 
 #as a check to cdc published data in pa at county level
-PA_2020_svi_co <- read_csv("download/2020svi_pa_co_cdc.csv")
+PA_2018_svi_co <- read_csv("download/2018svi_pa_co_cdc.csv")
 
-PA_2020_svi_co %>% 
-  filter(COUNTY == "Adams County") %>% 
-  select(COUNTY, EP_POV150)
+PA_2018_svi_co %>% 
+  filter(COUNTY == "Adams") %>% 
+  select(COUNTY, EP_POV)
 
 pa_co_var2 %>% 
   filter(GEOID == "42001") %>%  #geoid is character
-  select(GEOID, EP_POV150)
+  select(GEOID, EP_POV)
 # might *NOT* be exactly identical, because rounded numbers after digit point
 #CDC only keeps one digit after decimal
 
@@ -133,14 +152,14 @@ pa_co_var2 %>%
 options(scipen=999) #disable scientific notation
 
 pa_co_var3 <- pa_co_var2 %>% 
-  select(-all_of(E_var_name)) %>%   #tidyselect, column or external vector
+  select(GEOID, NAME, all_of(EP_var_name)) %>%   #tidyselect, column or external vector
   pivot_longer(!c(GEOID,NAME),   #all but GEOID and co/st- no need to know total columns
     names_to = "svi_var",
     values_to = "value") 
   #separate(NAME, into = c("county", "state"), sep = ",") 
 
 # Calculate pct_rank of each variable (EPL_)------------------------------------
-## note for 2020, PCI(income) changed into housing cost burden--no need to reverse 
+## if year=2020, PCI(income) changed into housing cost burden--no need to reverse 
 pa_co_pct1 <- pa_co_var3 %>%
   group_by(svi_var) %>%
   mutate(rank =  rank(value, ties.method = "min")) %>% 
@@ -150,22 +169,37 @@ pa_co_pct1 <- pa_co_var3 %>%
     EPL_var = round(EPL_var, 4)) %>%
   ungroup()
 
+## if year < 2020, PCI needs to be reversed (1-rank)
+pa_co_pct1 <- pa_co_var3 %>%
+  group_by(svi_var) %>%
+  mutate(rank =  rank(value, ties.method = "min")) %>% 
+  #check out count() "wt" arg, if NULL, count rows
+  add_count(svi_var) %>%  
+  mutate(EPL_var = ifelse(svi_var == "EP_PCI",
+    1 - ((rank - 1) / (n - 1)),
+    (rank - 1) / (n - 1)), 
+    EPL_var = round(EPL_var, 4)) %>%
+  ungroup()
+
+
+
 ##check EPL with cdc data
-PA_2020_svi_co %>% 
-  filter(COUNTY == "Adams County") %>% 
-  select(COUNTY, EP_POV150, EPL_POV150)
+PA_2018_svi_co %>% 
+  filter(COUNTY == "Adams") %>% 
+  select(COUNTY, EP_PCI, EPL_PCI)
 
 pa_co_pct1 %>% 
   filter(GEOID == "42001",
-    svi_var == "EP_POV150")
+    svi_var == "EP_PCI")
 
 
 
 # Calculate sum of pct_rank in each domain/theme (SPL_x)--------------------------------------
 ## set up xwalk from EP_var or originally, var_cal_table
 xwalk_theme_var <- EP_var %>% 
-  select(-x2020_table_field_calculation) %>% 
-  rename(svi_var = x2020_variable_name)
+  select(-x2018_table_field_calculation) %>% 
+  rename(svi_var = x2018_variable_name)
+
 
 pa_co_pct2 <- pa_co_pct1 %>% 
   left_join(xwalk_theme_var, by = "svi_var") %>% 
@@ -175,8 +209,8 @@ pa_co_pct2 <- pa_co_pct1 %>%
 
 
 ##check with cdc data
-PA_2020_svi_co %>% 
-  filter(COUNTY == "Adams County") %>% 
+PA_2018_svi_co %>% 
+  filter(COUNTY == "Adams") %>% 
   select(COUNTY, SPL_THEME1, SPL_THEME2, SPL_THEME3, SPL_THEME4) 
 
 
@@ -185,7 +219,7 @@ pa_co_pct2 %>%
 ##not match (especially in theme4)
 ##go back to EPL, and then EP--the one digit after decimal problem from above
 
-PA_2020_svi_co %>% 
+PA_2018_svi_co %>% 
   filter(COUNTY == "Adams County") %>% 
   select(COUNTY, EP_MUNIT,
     EP_MOBILE,
@@ -205,8 +239,8 @@ pa_co_pct3 <- pa_co_pct2  %>%
   ungroup()
   
 ##sanity check
-x<- PA_2020_svi_co %>% 
-  filter(COUNTY == "Adams County") %>% 
+x<- PA_2018_svi_co %>% 
+  filter(COUNTY == "Adams") %>% 
   select(COUNTY, RPL_THEME1, RPL_THEME2,
     RPL_THEME3, RPL_THEME4)
 
@@ -225,10 +259,13 @@ pa_co_pct4 <- pa_co_pct3 %>%
       RPL_themes = round(RPL_themes, 4))
 
 ## sanity check    
-PA_2020_svi_co %>% 
-  filter(COUNTY == "Adams County") %>% 
+PA_2018_svi_co %>% 
+  filter(COUNTY == "Adams") %>% 
   select(COUNTY, SPL_THEMES, RPL_THEMES)
-    
+ 
+pa_co_pct4 %>% 
+  filter(GEOID == "42001")
+   
 # Construct a wide form complied data -----------------------------------------
 ##pa_co_var2 = E_ data and EP_ data
 

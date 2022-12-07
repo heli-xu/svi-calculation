@@ -1,16 +1,21 @@
 ## cdc
-dfa = RI_2020_ct %>% 
+PA_2018_svi_co <- read_csv("download/2018svi_pa_co_cdc.csv") %>% 
+  rename(GEOID = FIPS) 
+
+
+dfa = PA_2018_svi_co %>% 
   select(
     GEOID, res_cdc = RPL_THEMES) %>% 
   mutate(GEOID = paste(GEOID)) %>% 
-  inner_join(
-    ri_ct_rpl_thms %>% 
+  left_join(
+    svi_complete %>% 
       select(GEOID, res_heli = RPL_themes)
   ) 
 
+#check NA (sometimes CDC has -999 for NA)
 skim(dfa)
 
-# check missing
+# check missing (optional)
 RI_2020_ct %>% 
   select(
     GEOID, res_cdc = RPL_THEMES) %>% 
@@ -21,7 +26,7 @@ RI_2020_ct %>%
   ) %>% 
   filter(is.na(res_heli))
 
-## home
+## check correlation between cdc result and ours
 cor(dfa$res_cdc, dfa$res_heli)
 
 dfa %>% 
