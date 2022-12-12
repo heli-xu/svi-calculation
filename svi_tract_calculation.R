@@ -3,12 +3,12 @@ library(tidyverse)
 
 
 # Load variables needed ----------------------------------
-var_list <- readRDS("data/census_variables_2016.rds") %>% 
+var_list <- readRDS("data/census_variables_2014.rds") %>% 
   unlist() %>% #autofill names for each string in the vector
   unname() #get rid of names --otherwise will rename the column in census pull
 
 # Load table for calculation and XWALK for theme--------------------------
-var_cal_table <- readRDS("data/variable_e_ep_calculation_2016.rds")
+var_cal_table <- readRDS("data/variable_e_ep_calculation_2014.rds")
 
 
 # Pull data from census-------------------------------------
@@ -16,41 +16,41 @@ var_cal_table <- readRDS("data/variable_e_ep_calculation_2016.rds")
 ri_ct_raw <- get_acs(
   geography = "tract",
   state = "RI",
-  year = 2016,
+  year = 2014,
   variables = var_list,
   output = "wide"
 )
 
 
-save(ri_ct_raw, file = "data/ri_tract_2016_raw.rds")
+save(ri_ct_raw, file = "data/ri_tract_2014_raw.rds")
 
 # Create svi variables with iteration (theme0-4)--------------------------------
 ## set up theme 0 vector, because sometimes other E_var calculation refer to them
 var_0 <- var_cal_table %>% 
   filter(theme == 0)
 
-var_0_name <- var_0$x2016_variable_name
-var_0_expr <- var_0$x2016_table_field_calculation
+var_0_name <- var_0$x2014_variable_name
+var_0_expr <- var_0$x2014_table_field_calculation
 names(var_0_expr) <- var_0_name
 
 ## set up E_ vector
 E_var <- 
   var_cal_table %>% 
   filter(theme%in%c(1:4),
-    str_detect(x2016_variable_name, "E_")) 
+    str_detect(x2014_variable_name, "E_")) 
 
-E_var_name <- E_var$x2016_variable_name
-E_var_expr <- E_var$x2016_table_field_calculation
+E_var_name <- E_var$x2014_variable_name
+E_var_expr <- E_var$x2014_table_field_calculation
 names(E_var_expr) <- E_var_name
 
 ## set up EP_ vector
 EP_var <-
   var_cal_table %>% 
   filter(theme%in%c(1:4),
-    str_detect(x2016_variable_name, "EP_"))
+    str_detect(x2014_variable_name, "EP_"))
 
-EP_var_name <- EP_var$x2016_variable_name
-EP_var_expr <- EP_var$x2016_table_field_calculation
+EP_var_name <- EP_var$x2014_variable_name
+EP_var_expr <- EP_var$x2014_table_field_calculation
 names(EP_var_expr) <- EP_var_name
 
 ## iterate with E_ vector and THEN EP_ vector
@@ -86,7 +86,7 @@ ri_ct_e_ep <-
 #removed because not making much difference at epl level (na gets dropped in long form)
 
 #sanity check (optional)
-RI_2016_ct <- read_csv("download/RI_tract_2016.csv") %>% 
+RI_2014_ct <- read_csv("download/RI_tract_2014.csv") %>% 
   rename(GEOID = FIPS)
  
 test <- ri_ct_e_ep %>% 
@@ -97,7 +97,7 @@ test <- ri_ct_e_ep %>%
 
 geo <- pull(test, GEOID)
 
-cdc <- RI_2016_ct %>% 
+cdc <- RI_2014_ct %>% 
   select(GEOID, E_LIMENG, EP_LIMENG) %>% 
   filter(GEOID %in% geo)
 ## NAs sometimes are 0 early on, and then -999 later in EPL_ in cdc data
@@ -110,7 +110,7 @@ test2 <- ri_ct_e_ep %>%
   select(GEOID, EP_LIMENG) %>% 
   drop_na(EP_LIMENG) 
 
-cdc2 <- RI_2016_ct %>% 
+cdc2 <- RI_2014_ct %>% 
   select(GEOID, EP_LIMENG)
 
 
@@ -154,15 +154,15 @@ test <- ri_ct_epl %>%
   filter(svi_var == "EP_PCI") %>% 
   select(GEOID, svi_var, value, EPL_var)
 
-cdc2 <- RI_2016_ct %>% 
+cdc2 <- RI_2014_ct %>% 
   select(GEOID, EPL_PCI)
 
 
 # Calculate sum of pct_rank in each domain/theme (SPL_x)--------------------------------------
 ## set up xwalk from EP_var or originally, var_cal_table
 xwalk_theme_var <- EP_var %>% 
-  select(-x2016_table_field_calculation) %>% 
-  rename(svi_var = x2016_variable_name)
+  select(-x2014_table_field_calculation) %>% 
+  rename(svi_var = x2014_variable_name)
 
 ri_ct_spl <- ri_ct_epl %>% 
   left_join(xwalk_theme_var, by = "svi_var") %>% 
@@ -171,7 +171,7 @@ ri_ct_spl <- ri_ct_epl %>%
   ungroup()
 
 ##check
-RI_2016_ct %>% 
+RI_2014_ct %>% 
   select(GEOID, SPL_THEME1, SPL_THEME2, SPL_THEME3, SPL_THEME4) 
 
 ri_ct_spl %>% 
@@ -202,7 +202,7 @@ ri_ct_rpl_thms <- ri_ct_rpl %>%
     RPL_themes = round(RPL_themes, 4))
 
 ##check
-RI_2016_ct %>% 
+RI_2014_ct %>% 
   select(GEOID, SPL_THEMES, RPL_THEMES) 
 
 ri_ct_rpl_thms %>% 

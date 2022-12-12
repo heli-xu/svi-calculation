@@ -3,12 +3,12 @@ library(tidyverse)
 
 
 # Load variables needed ----------------------------------
-var_list <- readRDS("data/census_variables_2016.rds") %>% 
+var_list <- readRDS("data/census_variables_2014.rds") %>% 
   unlist() %>% #autofill names for each string in the vector
   unname() #get rid of names --otherwise will rename the column in census pull
 
 # Load table for calculation and XWALK for theme--------------------------
-var_cal_table <- readRDS("data/variable_e_ep_calculation_2016.rds")
+var_cal_table <- readRDS("data/variable_e_ep_calculation_2014.rds")
 
 
 
@@ -17,19 +17,19 @@ var_cal_table <- readRDS("data/variable_e_ep_calculation_2016.rds")
 pa_co_raw <- get_acs(
   geography = "county",
   state = "PA",
-  year = 2016,
+  year = 2014,
   variables = var_list,
   output = "wide"
 )
 
-saveRDS(pa_co_raw, file = "data/pa_co_raw_2016.rds")
+saveRDS(pa_co_raw, file = "data/pa_co_raw_2014.rds")
 
 #pa_co_raw <- readRDS("data/pa_co_raw_2016.rds")
 
 # Extract named vector from val_cal_table (don't run)------------
-var_name <- var_cal_table$x2016_variable_name
+var_name <- var_cal_table$x2014_variable_name
 
-var_expr <- var_cal_table$x2016_table_field_calculation
+var_expr <- var_cal_table$x2014_table_field_calculation
 
 names(var_expr) <- var_name
 
@@ -76,28 +76,28 @@ df <-
 var_0 <- var_cal_table %>% 
   filter(theme == 0)
 
-var_0_name <- var_0$x2016_variable_name
-var_0_expr <- var_0$x2016_table_field_calculation
+var_0_name <- var_0$x2014_variable_name
+var_0_expr <- var_0$x2014_table_field_calculation
 names(var_0_expr) <- var_0_name
 
 ## set up E_ vector
 E_var <- 
   var_cal_table %>% 
   filter(theme%in%c(1:4),
-    str_detect(x2016_variable_name, "E_")) 
+    str_detect(x2014_variable_name, "E_")) 
 
-E_var_name <- E_var$x2016_variable_name
-E_var_expr <- E_var$x2016_table_field_calculation
+E_var_name <- E_var$x2014_variable_name
+E_var_expr <- E_var$x2014_table_field_calculation
 names(E_var_expr) <- E_var_name
 
 ## set up EP_ vector
 EP_var <-
   var_cal_table %>% 
   filter(theme%in%c(1:4),
-  str_detect(x2016_variable_name, "EP_"))
+  str_detect(x2014_variable_name, "EP_"))
 
-EP_var_name <- EP_var$x2016_variable_name
-EP_var_expr <- EP_var$x2016_table_field_calculation
+EP_var_name <- EP_var$x2014_variable_name
+EP_var_expr <- EP_var$x2014_table_field_calculation
 names(EP_var_expr) <- EP_var_name
 
 ## iterate with E_ vector and THEN EP_ vector 
@@ -135,9 +135,9 @@ pa_co_var2 <-
 
 
 #as a check to cdc published data in pa at county level
-PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv")
+PA_2014_svi_co <- read_csv("download/2014svi_pa_co_cdc.csv")
 
-PA_2016_svi_co %>% 
+PA_2014_svi_co %>% 
   filter(COUNTY == "Adams") %>% 
   select(COUNTY, EP_POV)
 
@@ -184,7 +184,7 @@ pa_co_pct1 <- pa_co_var3 %>%
 
 
 ##check EPL with cdc data
-PA_2016_svi_co %>% 
+PA_2014_svi_co %>% 
   filter(COUNTY == "Adams") %>% 
   select(COUNTY, EP_PCI, EPL_PCI)
 
@@ -197,8 +197,8 @@ pa_co_pct1 %>%
 # Calculate sum of pct_rank in each domain/theme (SPL_x)--------------------------------------
 ## set up xwalk from EP_var or originally, var_cal_table
 xwalk_theme_var <- EP_var %>% 
-  select(-x2016_table_field_calculation) %>% 
-  rename(svi_var = x2016_variable_name)
+  select(-x2014_table_field_calculation) %>% 
+  rename(svi_var = x2014_variable_name)
 
 
 pa_co_pct2 <- pa_co_pct1 %>% 
@@ -209,7 +209,7 @@ pa_co_pct2 <- pa_co_pct1 %>%
 
 
 ##check with cdc data
-PA_2016_svi_co %>% 
+PA_2014_svi_co %>% 
   filter(COUNTY == "Adams") %>% 
   select(COUNTY, SPL_THEME1, SPL_THEME2, SPL_THEME3, SPL_THEME4) 
 
@@ -219,14 +219,35 @@ pa_co_pct2 %>%
 ##not match (especially in theme4)
 ##go back to EPL, and then EP--the one digit after decimal problem from above
 
-PA_2016_svi_co %>% 
-  filter(COUNTY == "Adams County") %>% 
+PA_2014_svi_co %>% 
+  filter(COUNTY == "Adams") %>% 
   select(COUNTY, EP_MUNIT,
     EP_MOBILE,
     EP_CROWD,
     EP_NOVEH,
     EP_GROUPQ) 
 
+pa_co_pct1 %>% 
+  filter(GEOID == "42001",
+    svi_var%in%c("EP_MUNIT",
+    "EP_MOBILE",
+    "EP_CROWD",
+    "EP_NOVEH",
+    "EP_GROUPQ")) 
+#WTF?
+
+pa_co_var2 %>% 
+  filter(GEOID == "42001") %>% 
+  select(
+      E_CROWD,
+      E_NOVEH)
+
+PA_2014_svi_co %>% 
+  filter(COUNTY == "Adams") %>% 
+  select(COUNTY, 
+   
+    E_CROWD,
+    E_NOVEH) 
 
 # Calculate pct_rank of each domain/theme (RPL_x)--------------------------------------
 ## summarised table, no longer contain individual svi_var info
@@ -239,7 +260,7 @@ pa_co_pct3 <- pa_co_pct2  %>%
   ungroup()
   
 ##sanity check
-x<- PA_2016_svi_co %>% 
+x<- PA_2014_svi_co %>% 
   filter(COUNTY == "Adams") %>% 
   select(COUNTY, RPL_THEME1, RPL_THEME2,
     RPL_THEME3, RPL_THEME4)
@@ -259,7 +280,7 @@ pa_co_pct4 <- pa_co_pct3 %>%
       RPL_themes = round(RPL_themes, 4))
 
 ## sanity check    
-PA_2016_svi_co %>% 
+PA_2014_svi_co %>% 
   filter(COUNTY == "Adams") %>% 
   select(COUNTY, SPL_THEMES, RPL_THEMES)
  
