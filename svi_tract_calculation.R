@@ -17,18 +17,8 @@ ri_ct_raw <- get_acs(
   geography = "tract",
   state = "RI",
   year = 2016,
-  variables = "HD01_VD01",
+  variables = var_list,
   output = "wide"
-)
-
-
-df <- getCensus(
-  name = "acs/acs5",
-  vintage = 2016,
-  vars = var_list,
-  region = "tract: *",
-  regionin = "state: 44",
-  key = "74c0f667233177d449c72119615f216e4a56bbf4"
 )
 
 

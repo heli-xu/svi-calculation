@@ -1,9 +1,9 @@
-## cdc
-PA_2018_svi_co <- read_csv("download/2018svi_pa_co_cdc.csv") %>% 
+## load cdc data
+PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv") %>% 
   rename(GEOID = FIPS) 
 
 
-dfa = RI_2018_ct %>% 
+dfa = PA_2016_svi_co %>% 
   select(
     GEOID, res_cdc = RPL_THEMES) %>% 
   mutate(GEOID = paste(GEOID)) %>% 

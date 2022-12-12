@@ -8,6 +8,11 @@ library(stringr)
 #url <- c("https://www.atsdr.cdc.gov/placeandhealth/svi/documentation/SVI_documentation_2020.html")
 #raw_text <- map(url, pdf_text)
 
+## EDITS: 2016 and 2014 dictionary use FactFinder to download census data,
+## which generates column names that don't match variable names
+## therefore census_var cannot be pulled from table_field_calcualtion
+## used 2018 table_field_calculation instead (check if actual var and calculation changed)
+
 svi_var <- read_xlsx("download/2018svi_dictionary.xlsx") %>% 
   clean_names() #column names starting with numbers not good for wrangling
 
@@ -42,6 +47,7 @@ var_cal <- svi_var_clean %>%
 #M or ^ will remove var name with M in it
 
 #inspect, modify calculations that spill over (within E_, EP_)
+#(something like "10 0" will be dealt with later - it's the \r\n)
 ##2020
 var_cal$x2020_table_field_calculation[29] <- "(E_POV150 /S1701_C01_001E) * 100"
 
@@ -57,15 +63,17 @@ var_cal$x2018_table_field_calculation[21] <- var_cal %>%
   pull(x2018_table_field_calculation) %>% 
   str_sub(.,1, -2) #sigh, last chr is space, so last 2
   
-##2016
-var_cal$x2016_table_field_calculation[36] <- "(E_LIMENG/HD01_VD01)*100"
-var_cal$x2016_table_field_calculation[42] <- "(E_GROUPQ/E_TOTPOP)*100"
-##2014 (something like "10 0" will be dealt with later - it's the \r\n)
-var_cal$x2014_table_field_calculation[36] <- "(E_LIMENG/HD01_VD01)*100"
-var_cal$x2014_table_field_calculation[42] <- "(E_GROUPQ/E_TOTPOP)*100"
+
+# ##2016
+# var_cal$x2016_table_field_calculation[36] <- "(E_LIMENG/HD01_VD01)*100"
+# var_cal$x2016_table_field_calculation[42] <- "(E_GROUPQ/E_TOTPOP)*100"
+
+# ##2014 
+# var_cal$x2014_table_field_calculation[36] <- "(E_LIMENG/HD01_VD01)*100"
+# var_cal$x2014_table_field_calculation[42] <- "(E_GROUPQ/E_TOTPOP)*100"
+
  
 # extract variables from calculation
-br_pattern <- c("\r", "\n")
 
 var_cal <- var_cal %>% 
   mutate(
@@ -100,6 +108,14 @@ var_cal_eep <- var_cal2 %>%
 
 saveRDS(var_cal_eep, file = "data/variable_e_ep_calculation_2018.rds")
 
+##EDITS: for 2016 and 2014, turns out census_var cannot be pulled from  table_field_cal.
+##just use 2018 table and var_list, rename to avoid confusion
+var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>% 
+  rename(x2016_variable_name = x2018_variable_name,
+    x2016_table_field_calculation = x2018_table_field_calculation)
+
+saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2016.rds")
+
 
 #make a function to pull variables from each theme 
 #E_ and EP_ (estimate and percentage of total, which *sometimes pull new variables)
@@ -122,6 +138,8 @@ names(var_list) <- c("t0","t1","t2","t3","t4","t5")
 
 saveRDS(var_list, "data/census_variables_2018.rds")  
 
+## EDITS:
+saveRDS(var_list, file = "data/census_variables_2016.rds")
 
 
 #make a named vector storing calculation
