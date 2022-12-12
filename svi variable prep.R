@@ -12,8 +12,12 @@ library(stringr)
 ## which generates column names that don't match variable names
 ## therefore census_var cannot be pulled from table_field_calcualtion
 ## used 2018 table_field_calculation instead (check if actual var and calculation changed)
+## added theme info from dictionary though
 
-svi_var <- read_xlsx("download/2018svi_dictionary.xlsx") %>% 
+
+# import dictionary -------------------------------------------------------
+
+svi_var <- read_xlsx("download/2014svi_dictionary.xlsx") %>% 
   clean_names() #column names starting with numbers not good for wrangling
 
 
@@ -34,14 +38,14 @@ svi_var <- svi_var %>%
 
 svi_var_clean <- svi_var %>% 
   #filter(!x2020_table_field_calculation_if_changed %in% pages) %>% 
-  mutate(x2018_variable_name = replace_na(x2018_variable_name, "x")) %>% 
-  filter(!str_starts(x2018_variable_name,"M")) 
+  mutate(x2014_variable_name = replace_na(x2014_variable_name, "x")) %>% 
+  filter(!str_starts(x2014_variable_name,"M")) 
 
-#table with theme, variable, calculation
+#  simply table to theme, variable, calculation --------------------------------------
 var_cal <- svi_var_clean %>% 
-  select(x2018_variable_name, theme, x2018_table_field_calculation) %>% 
-  drop_na(x2018_table_field_calculation) %>% 
-  filter(!str_detect(x2018_table_field_calculation,"\\^"))
+  select(x2014_variable_name, theme, x2014_table_field_calculation) %>% 
+  drop_na(x2014_table_field_calculation) %>% 
+  filter(!str_detect(x2014_table_field_calculation,"\\^"))
   #"M ^", some variables named x were wrapped info from MOE rows
 #2016 edits: sometimes no space between M and ^
 #M or ^ will remove var name with M in it
@@ -73,34 +77,33 @@ var_cal$x2018_table_field_calculation[21] <- var_cal %>%
 # var_cal$x2014_table_field_calculation[42] <- "(E_GROUPQ/E_TOTPOP)*100"
 
  
-# extract variables from calculation
-
-var_cal <- var_cal %>% 
-  mutate(
-    x2018_table_field_calculation = str_replace_all(x2018_table_field_calculation, "\r\n",""),
-    #pdf to excel introduce line breaks, not visible in view- use $ index to see 
-    census_var = str_replace_all(x2018_table_field_calculation,
-                                      "[^[:alnum:][:blank:]_]",
-                                      " ")) 
-#replace with blank instead of nothing: 100 will be separated by at least one blank with string
-#edits from 2018 table
-
+# For 2020 and 2018, extract variables from calculation -------------------------
 
 #remember this table still has x and NA, 
 #but for E_ and EP_,calculation is complete and matching variable
 #so you could safely filter out x when needed
 
-#subsetting E_ and EP_ variables
-var_prefix <- c("E_", "EP_")
+
+
 
 var_cal2 <- 
   var_cal %>%
-  filter(str_detect(x2018_variable_name, paste(var_prefix, collapse = "|"))) %>% 
+  filter(str_detect(x2014_variable_name, paste(var_prefix, collapse = "|"))) %>% 
+  #modify the blank themes
   mutate(theme = case_when(
-    x2018_variable_name%in%c("E_TOTPOP","E_HU","E_HH") ~ 0,  #must be same class
+    x2014_variable_name%in%c("E_TOTPOP","E_HU","E_HH") ~ 0,  #must be same class
     is.na(theme) ~ 5, #adjunct variables
     TRUE ~ theme
-  ))
+  )) %>% 
+  mutate(
+    #pdf to excel introduce line breaks, not visible in view- use $ index to see
+    x2014_table_field_calculation = str_replace_all(x2014_table_field_calculation, "\r\n",""),
+    census_var = str_replace_all(x2014_table_field_calculation,
+      "[^[:alnum:][:blank:]_]",
+      " ")) 
+#replace with blank instead of nothing: 100 will be separated by at least one blank with string
+#edits from 2018 table
+
 
 #save a simpler table to load into calculation (name, theme, cal)
 var_cal_eep <- var_cal2 %>% 
@@ -110,12 +113,19 @@ saveRDS(var_cal_eep, file = "data/variable_e_ep_calculation_2018.rds")
 
 ##EDITS: for 2016 and 2014, turns out census_var cannot be pulled from  table_field_cal.
 ##just use 2018 table and var_list, rename to avoid confusion
+## 2016 ##
 var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>% 
   rename(x2016_variable_name = x2018_variable_name,
     x2016_table_field_calculation = x2018_table_field_calculation)
 
 saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2016.rds")
 
+## 2014 ##
+var_cal_table <- var_cal_table %>% 
+  rename(x2014_variable_name = x2016_variable_name,
+    x2014_table_field_calculation = x2016_table_field_calculation)
+
+saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2014.rds")
 
 #make a function to pull variables from each theme 
 #E_ and EP_ (estimate and percentage of total, which *sometimes pull new variables)
@@ -140,6 +150,7 @@ saveRDS(var_list, "data/census_variables_2018.rds")
 
 ## EDITS:
 saveRDS(var_list, file = "data/census_variables_2016.rds")
+saveRDS(var_list, file = "data/census_variables_2014.rds")
 
 
 #make a named vector storing calculation
