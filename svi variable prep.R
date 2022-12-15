@@ -118,21 +118,43 @@ var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>%
   rename(x2016_variable_name = x2018_variable_name,
     x2016_table_field_calculation = x2018_table_field_calculation)
 
+#edits: guess what a var needs changing
+#E_AGE65, EP_AGE65
+#no count data from census, the label "total estimate" is actually a percentage
+#when calculate, we do E_ first, so to make things simpler, 
+#we won't introduce calculation in E_, and keep it the same with EP_
+var_cal_table$x2016_table_field_calculation[8] <- "S0101_C01_028E"
+var_cal_table$x2016_table_field_calculation[23] <- "S0101_C01_028E"
+
 saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2016.rds")
 
 ## 2014 ##
-var_cal_table <- var_cal_table %>% 
-  rename(x2014_variable_name = x2016_variable_name,
-    x2014_table_field_calculation = x2016_table_field_calculation)
+var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>% 
+  rename(x2014_variable_name = x2018_variable_name,
+    x2014_table_field_calculation = x2018_table_field_calculation)
+#E_CROWD
+var_cal_table$x2014_table_field_calculation[16] <- "DP04_0077E +DP04_0078E"
+#E_NOVEH
+var_cal_table$x2014_table_field_calculation[17] <- "DP04_0057E"
+#remember to check the EP_ value too!!! sometimes it's also pulled from census
+#EP_CROWD no need to adjust
+#EP_NOVEH
+var_cal_table$x2014_table_field_calculation[32] <- "DP04_0057PE"
+#E_AGE65 and EP_AGE65
+#no count data from census, the label "total estimate" is actually a percentage
+var_cal_table$x2014_table_field_calculation[8] <- "S0101_C01_028E"
+var_cal_table$x2014_table_field_calculation[23] <- "S0101_C01_028E"
+
 
 saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2014.rds")
+
 
 #make a function to pull variables from each theme 
 #E_ and EP_ (estimate and percentage of total, which *sometimes pull new variables)
 theme_var_df <- function(n){
   var_cal2 %>% 
     filter(theme == n) %>%
-    select(x2018_variable_name, census_var) %>% 
+    select(x2014_variable_name, census_var) %>% 
     separate_rows(census_var, sep = " ")  %>% 
     filter(!str_starts(census_var, "E_"),
            !census_var%in%c("","100")) %>% 
@@ -148,10 +170,33 @@ names(var_list) <- c("t0","t1","t2","t3","t4","t5")
 
 saveRDS(var_list, "data/census_variables_2018.rds")  
 
-## EDITS:
-saveRDS(var_list, file = "data/census_variables_2016.rds")
-saveRDS(var_list, file = "data/census_variables_2014.rds")
+## EDITS: 2016 ------------------------
+var_cal_table$x2016_table_field_calculation
 
+var_cal2 <- var_cal_table %>% 
+  mutate(census_var = str_replace_all(x2016_table_field_calculation,
+    "[^[:alnum:][:blank:]_]",
+    " ")) 
+
+# modify theme_var_df function 
+var_list <- map(0:5, theme_var_df) 
+names(var_list) <- c("t0","t1","t2","t3","t4","t5")
+
+saveRDS(var_list, file = "data/census_variables_2016.rds")
+
+## EDITS: 2014 ----------------------------
+var_cal_table$x2014_table_field_calculation 
+# just to check no line break nonsense
+
+var_cal2 <- var_cal_table %>% 
+  mutate(census_var = str_replace_all(x2014_table_field_calculation,
+  "[^[:alnum:][:blank:]_]",
+  " ")) 
+
+# modify theme_var_df function 
+var_list <- map(0:5, theme_var_df) 
+names(var_list) <- c("t0","t1","t2","t3","t4","t5")
+saveRDS(var_list, file = "data/census_variables_2014.rds")
 
 #make a named vector storing calculation
 #this has been incorporated into svi_calculation 
