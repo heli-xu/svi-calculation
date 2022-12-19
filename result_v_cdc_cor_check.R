@@ -4,8 +4,11 @@ library(skimr)
 PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv") %>% 
   rename(GEOID = FIPS) 
 
+RI_2016_svi_ct <- read_csv("download/RI_tract_2016.csv") %>% 
+  rename(GEOID = FIPS)
+
 ## joining data with our result
-dfa <- PA_2016_svi_co %>% 
+dfa <- RI_2016_svi_ct %>% 
   select(
     GEOID, 
     cdc_RPL_themes = RPL_THEMES, 
@@ -34,10 +37,10 @@ skim(dfa)
 
 # check missing 
 dfa %>% 
-  filter(is.na(res_heli))
+  filter(is.na(RPL_themes)) %>% view()
 
 dfa <- dfa %>% 
-  drop_na(res_heli)
+  drop_na(RPL_themes)
 
 ## check correlation between cdc result and ours
 cor(dfa$cdc_RPL_themes, dfa$RPL_themes)
