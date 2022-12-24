@@ -96,7 +96,7 @@ get_svi <- function(year, data){
 
 # EPL_ --------------------------------------------------------------------
 
-    svi_epl2 <-
+    svi_epl <-
       svi_e_ep %>%
       select(GEOID, NAME, all_of(EP_var_name)) %>%   #tidyselect, column or external vector
       pivot_longer(!c(GEOID, NAME),   #all but GEOID and NAME - no need to know total columns
@@ -107,15 +107,12 @@ get_svi <- function(year, data){
       mutate(rank =  rank(value, ties.method = "min")) %>%
       #check out count() "wt" arg, if NULL, count rows
       add_count(svi_var) %>%
-      mutate(EPL_var = 
-        #   ifelse(
-        # year >= 2020,
-        # (rank - 1) / (n - 1),
-        ifelse(svi_var == "EP_PCI",
-          1 - ((rank - 1) / (n - 1)),
-          (rank - 1) / (n - 1))
-        ,
-        EPL_var = round(EPL_var, 4)) %>%
+      mutate(EPL_var = case_when(
+        year >= 2020 ~(rank - 1) / (n - 1),
+        svi_var == "EP_PCI"~ 1 - ((rank - 1) / (n - 1)),
+        TRUE ~ (rank - 1) / (n - 1)),
+        EPL_var = round(EPL_var, 4)
+      )  %>%
       ungroup()
 
 
