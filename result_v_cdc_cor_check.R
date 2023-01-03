@@ -4,11 +4,11 @@ library(skimr)
 PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv") %>% 
   rename(GEOID = FIPS) 
 
-RI_2016_svi_ct <- read_csv("download/RI_tract_2016.csv") %>% 
+RI_2014_svi_ct <- read_csv("download/RI_tract_2014.csv") %>% 
   rename(GEOID = FIPS)
 
 ## joining data with our result
-dfa <- RI_2016_svi_ct %>% 
+dfa <- PA_2016_svi_co %>% 
   select(
     GEOID, 
     cdc_RPL_themes = RPL_THEMES, 
@@ -19,7 +19,7 @@ dfa <- RI_2016_svi_ct %>%
     ) %>% 
   mutate(GEOID = paste(GEOID)) %>% 
   left_join(
-    svi_complete %>% 
+    result %>% 
       select(
         GEOID, 
         RPL_themes,
