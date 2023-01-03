@@ -1,3 +1,5 @@
+library(tidycensus)
+library(tidyverse)
 
 # get_census_data() -------------------------------------------------------
 
@@ -130,7 +132,8 @@ get_svi <- function(year, data){
     #SPL_each theme
     left_join(xwalk_theme_var, by = "svi_var") %>% 
     group_by(theme, GEOID, NAME) %>%  #GEOID and NAME just there to keep the column
-    summarise(SPL_theme = sum(EPL_var)) %>% 
+    summarise(SPL_theme = sum(EPL_var), 
+      .groups = "drop") %>% 
     ungroup() %>%  
     #RPL_
     group_by(theme) %>% 
@@ -138,9 +141,7 @@ get_svi <- function(year, data){
     add_count(theme) %>%  #rows per group, count the group_by param
     mutate(RPL_theme = (rank_theme-1)/(n-1),
       RPL_theme = round(RPL_theme, 4)) %>% 
-    ungroup() %>% 
-    group_by(theme) %>% 
-    group_modify(~head(.x, 2))
+    ungroup() 
 
 
 #z <- spl_rpl_tm(2014, epl_data = y)
@@ -152,11 +153,11 @@ get_svi <- function(year, data){
     group_by(GEOID, NAME) %>% 
     summarise(SPL_themes = sum(SPL_theme),
       .groups = "drop") %>% 
-    # ungroup() %>% 
     add_count() %>% 
     mutate(rank_themes = rank(SPL_themes, ties.method = "min"),
       RPL_themes = (rank_themes-1)/(n-1),
-      RPL_themes = round(RPL_themes, 4))
+      RPL_themes = round(RPL_themes, 4)) %>% 
+    ungroup()
   
 
 # merge all variabels to svi ----------------------------------------------
