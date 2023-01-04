@@ -128,6 +128,16 @@ var_cal_table$x2016_table_field_calculation[23] <- "S0101_C01_028E"
 
 saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2016.rds")
 
+## 2015 ##
+var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>% 
+  rename(x2015_variable_name = x2018_variable_name,
+    x2015_table_field_calculation = x2018_table_field_calculation)
+
+var_cal_table$x2015_table_field_calculation[8] <- "S0101_C01_028E"
+var_cal_table$x2015_table_field_calculation[23] <- "S0101_C01_028E"
+
+saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2015.rds")
+
 ## 2014 ##
 var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>% 
   rename(x2014_variable_name = x2018_variable_name,
@@ -183,6 +193,8 @@ var_list <- map(0:5, theme_var_df)
 names(var_list) <- c("t0","t1","t2","t3","t4","t5")
 
 saveRDS(var_list, file = "data/census_variables_2016.rds")
+
+## EDITS: 2015 same as 2016 ##
 
 ## EDITS: 2014 ----------------------------
 var_cal_table$x2014_table_field_calculation 
