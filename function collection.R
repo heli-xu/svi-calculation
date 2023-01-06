@@ -21,8 +21,8 @@ get_census_data <- function(year, geography, state, ...){
 }
 
 
-get_census_data(2014, "tract", "RI")
-data <- get_census_data(2016, "county", "PA")
+data <- get_census_data(2014, "tract", "RI")
+data <- get_census_data(2017, "tract", "RI")
 
 
 
@@ -191,6 +191,6 @@ get_svi <- function(year, data){
   return(svi_complete)
 }
 
-result <- get_svi(2014, data = x)
 
-result <- get_svi(2016, data = data)
+
+result <- get_svi(2017, data = data)

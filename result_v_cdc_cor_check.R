@@ -4,11 +4,11 @@ library(skimr)
 PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv") %>% 
   rename(GEOID = FIPS) 
 
-RI_2014_svi_ct <- read_csv("download/RI_tract_2014.csv") %>% 
+RI_2018_svi_ct <- read_csv("download/RI_tract_2018.csv") %>% 
   rename(GEOID = FIPS)
 
 ## joining data with our result
-dfa <- PA_2016_svi_co %>% 
+dfa <- RI_2018_svi_ct %>% 
   select(
     GEOID, 
     cdc_RPL_themes = RPL_THEMES, 
@@ -51,6 +51,6 @@ cor(dfa$cdc_RPL_theme4, dfa$RPL_theme4)
 
 
 dfa %>% 
-  ggplot(aes(x = cdc_RPL_theme2, y = RPL_theme2)) +
+  ggplot(aes(x = cdc_RPL_themes, y = RPL_themes)) +
   geom_point()+
   geom_abline(slope = 1, intercept = 0, color = 'red')
