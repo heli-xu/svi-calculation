@@ -113,6 +113,13 @@ saveRDS(var_cal_eep, file = "data/variable_e_ep_calculation_2018.rds")
 
 ##EDITS: for 2016 and 2014, turns out census_var cannot be pulled from  table_field_cal.
 ##just use 2018 table and var_list, rename to avoid confusion
+## 2017 ##
+var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>% 
+  rename(x2017_variable_name = x2018_variable_name,
+    x2017_table_field_calculation = x2018_table_field_calculation)
+
+saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2017.rds")
+
 ## 2016 ##
 var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>% 
   rename(x2016_variable_name = x2018_variable_name,
@@ -180,6 +187,9 @@ names(var_list) <- c("t0","t1","t2","t3","t4","t5")
 
 saveRDS(var_list, "data/census_variables_2018.rds")  
 
+
+## EDITS: 2017 same as 2018 -----------------
+
 ## EDITS: 2016 ------------------------
 var_cal_table$x2016_table_field_calculation
 
@@ -194,7 +204,7 @@ names(var_list) <- c("t0","t1","t2","t3","t4","t5")
 
 saveRDS(var_list, file = "data/census_variables_2016.rds")
 
-## EDITS: 2015 same as 2016 ##
+## EDITS: 2015 same as 2016  -----------------
 
 ## EDITS: 2014 ----------------------------
 var_cal_table$x2014_table_field_calculation 
