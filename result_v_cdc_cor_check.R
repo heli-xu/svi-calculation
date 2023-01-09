@@ -1,6 +1,7 @@
 library(skimr)
 
 ## load cdc data
+# keep in mind in 2019 changed from PCI to HBURD
 PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv") %>% 
   rename(GEOID = FIPS) 
 
@@ -37,7 +38,7 @@ skim(dfa)
 
 # check missing 
 dfa %>% 
-  filter(is.na(RPL_themes)) %>% view()
+  filter(is.na(RPL_theme1)) %>% view()
 
 dfa <- dfa %>% 
   drop_na(RPL_themes)

@@ -22,7 +22,7 @@ get_census_data <- function(year, geography, state, ...){
 
 
 data <- get_census_data(2014, "tract", "RI")
-data <- get_census_data(2017, "tract", "RI")
+data <- get_census_data(2019, "tract", "RI")
 
 
 
@@ -110,7 +110,7 @@ get_svi <- function(year, data){
       #check out count() "wt" arg, if NULL, count rows
       add_count(svi_var) %>%
       mutate(EPL_var = case_when(
-        year >= 2020 ~(rank - 1) / (n - 1),
+        year >= 2019 ~(rank - 1) / (n - 1),
         svi_var == "EP_PCI"~ 1 - ((rank - 1) / (n - 1)),
         TRUE ~ (rank - 1) / (n - 1)),
         EPL_var = round(EPL_var, 4)
@@ -193,4 +193,4 @@ get_svi <- function(year, data){
 
 
 
-result <- get_svi(2017, data = data)
+result <- get_svi(2019, data = data)
