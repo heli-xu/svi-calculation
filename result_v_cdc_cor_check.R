@@ -1,7 +1,11 @@
 library(skimr)
+library(readr)
+library(tidyverse)
 
 ## load cdc data
 # keep in mind in 2019 changed from PCI to HBURD
+
+
 PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv") %>% 
   rename(GEOID = FIPS) 
 
@@ -9,7 +13,8 @@ RI_2018_svi_ct <- read_csv("download/RI_tract_2018.csv") %>%
   rename(GEOID = FIPS)
 
 ## joining data with our result
-dfa <- RI_2018_svi_ct %>% 
+dfa <- US2014svi_ct %>% 
+  filter(ST_ABBR == "RI") %>%  # if checking against US data
   select(
     GEOID, 
     cdc_RPL_themes = RPL_THEMES, 
@@ -17,7 +22,7 @@ dfa <- RI_2018_svi_ct %>%
     cdc_RPL_theme2 = RPL_THEME2,
     cdc_RPL_theme3 = RPL_THEME3,
     cdc_RPL_theme4 = RPL_THEME4
-    ) %>% 
+    ) %>%
   mutate(GEOID = paste(GEOID)) %>% 
   left_join(
     result %>% 
