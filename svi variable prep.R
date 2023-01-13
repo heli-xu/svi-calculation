@@ -111,6 +111,12 @@ var_cal_eep <- var_cal2 %>%
 
 saveRDS(var_cal_eep, file = "data/variable_e_ep_calculation_2018.rds")
 
+## EDITS: 2021 ## same as 2020
+var_cal_table <- readRDS("data/variable_e_ep_calculation_2020.rds") %>% 
+  rename(x2021_variable_name = x2020_variable_name,
+    x2021_table_field_calculation = x2020_table_field_calculation)
+
+saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2021.rds")
 
 ## EDITS: 2019 ##
 var_cal_table <- readRDS("data/variable_e_ep_calculation_2020.rds") %>% 
@@ -196,6 +202,7 @@ names(var_list) <- c("t0","t1","t2","t3","t4","t5")
 
 saveRDS(var_list, "data/census_variables_2018.rds")  
 
+## EDITS: 2021 same as 2020 ----------------
 ## EDITS: 2019 same as 2020 ----------------
 
 ## EDITS: 2017 same as 2018 -----------------
