@@ -4,7 +4,7 @@ library(tidyverse)
 # get_census_data() -------------------------------------------------------
 
 
-get_census_data <- function(year, geography, state, ...){
+get_census_data <- function(year, geography, state = NULL, ...){
   
   var_list <- readRDS(paste0("data/census_variables_",year,".rds")) %>%
     unlist() %>%
@@ -24,12 +24,25 @@ get_census_data <- function(year, geography, state, ...){
 data <- get_census_data(2014, "tract", "RI")
 data <- get_census_data(2019, "tract", "RI")
 
+data2021 <- get_census_data(2021, "zcta")
+data2021_pa <- data2021 %>% filter(GEOID%in%all_of(pa_zcta2021))
 
+data2020 <- get_census_data(2020, "zcta") 
+data2020_pa <- data2020 %>% filter(GEOID%in%all_of(pa_zcta2020))
+  
+data2019 <- get_census_data(2019, "zcta") #S tables not working for state
+data2019_pa <- data2019 %>% filter(GEOID%in%all_of(pa_zcta2019))
+
+data2018 <- get_census_data(2018, "zcta", "PA")
+
+data2017 <- get_census_data(2017, "zcta", "PA")
+
+#  calculate svi --------------------------------------------------------------
 
 get_svi <- function(year, data){
   
   
-# E_&EP_ --------------------------------------------------------------
+ # E_&EP_
   
   var_cal_table <- readRDS(paste0("data/variable_e_ep_calculation_", year, ".rds"))
   
@@ -193,4 +206,4 @@ get_svi <- function(year, data){
 
 
 
-result <- get_svi(2019, data = data)
+result <- get_svi(2017, data = data2017)
