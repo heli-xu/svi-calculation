@@ -9,11 +9,14 @@ library(tidyverse)
 PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv") %>% 
   rename(GEOID = FIPS) 
 
+PA_2020_ct <- read_csv("cdc_us_svi/cdc_svi_2020_pa_ct.csv") %>% 
+  rename(GEOID = FIPS) 
+
 RI_2020_svi_ct <- read_csv("download/RI_tract_2020.csv") %>% 
   rename(GEOID = FIPS)
 
 ## joining data with our result
-dfa <- RI_2020_svi_ct %>% 
+dfa <- PA_2020_ct %>% 
   # filter(ST_ABBR == "RI") %>%  # if checking against US data
   select(
     GEOID, 
@@ -46,7 +49,8 @@ dfa %>%
   filter(is.na(RPL_theme1)) %>% view()
 
 dfa <- dfa %>% 
-  drop_na(RPL_themes)
+  drop_na() %>%   ## remove NA rows
+  filter_all(all_vars(.>=0))  ##sometimes no NA in DIY, but -999 in cdc data
 
 ## check correlation between cdc result and ours
 cor(dfa$cdc_RPL_themes, dfa$RPL_themes)
