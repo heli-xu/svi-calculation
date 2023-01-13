@@ -1,0 +1,28 @@
+---
+title: "CDC SVI validation"
+format: html
+editor: visual
+---
+
+## Calculate SVI from census data
+
+As included in a separate R script ("function collection.R"), `get_census_data()`(using {tidycensus} under the hood) and `get_svi()` were used to calculate SVI from census data. The variables were either extracted from the dictionary published by CDC when SVI was released (for 2014, 2016, 2018, 2020), or modified from the adjacent years to account for minor changes (for 2015, 2017, 2019, 2021). Details about the variables preparation are included in a separate script ("svi variable prep.R").
+
+With SVI calculated at the ZCTA level in PA from 2017-2021, here we'd like to check the results against the CDC-published SVI data at state level (PA) in the years that they are available.
+
+## Add ZCTA information to CDC-released SVI
+
+SVI tables for PA at census tract level were downloaded for PA in 2018, 2020 from [CDC/ATSDR SVI website](https://www.atsdr.cdc.gov/placeandhealth/svi/data_documentation_download.html). In order to compare them with our result, ZCTA information needs to be added to the SVI tables.
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
