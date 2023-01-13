@@ -9,12 +9,12 @@ library(tidyverse)
 PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv") %>% 
   rename(GEOID = FIPS) 
 
-RI_2018_svi_ct <- read_csv("download/RI_tract_2018.csv") %>% 
+RI_2020_svi_ct <- read_csv("download/RI_tract_2020.csv") %>% 
   rename(GEOID = FIPS)
 
 ## joining data with our result
-dfa <- US2014svi_ct %>% 
-  filter(ST_ABBR == "RI") %>%  # if checking against US data
+dfa <- RI_2020_svi_ct %>% 
+  # filter(ST_ABBR == "RI") %>%  # if checking against US data
   select(
     GEOID, 
     cdc_RPL_themes = RPL_THEMES, 
