@@ -103,7 +103,7 @@ get_svi <- function(year, data){
     }) %>% 
     bind_cols(svi_e, .) %>% 
     #keep the new columns, GEOID, NAME
-    select(GEOID, NAME, all_of(E_var_name), all_of(EP_var_name)) 
+    select(GEOID, NAME, all_of(var_0_name), all_of(E_var_name), all_of(EP_var_name)) 
   
 
 
