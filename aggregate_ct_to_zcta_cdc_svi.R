@@ -9,20 +9,20 @@ ct_zcta_xwalk2020 <- ct_zcta %>%
     GEOID = GEOID_TRACT_20) %>% 
   mutate(ZCTA = as.character(ZCTA))
 
-pa_c
-
 #load population in each zcta (or pull again S0601_C01_001E)
-
-# weighted by population
+#using data argument from the svi function
 pop2020_zcta <- data2020_pa %>%  
   select(GEOID, "S0601_C01_001E")
 
-ct_zcta_xwalk2020<- ct_zcta_xwalk2020 %>% 
+ct_zcta_xwalk2020 <- ct_zcta_xwalk2020 %>% 
   left_join( pop2020_zcta %>% rename(ZCTA = GEOID), 
     by = "ZCTA") %>% 
-  mutate(ZCTA_POP = S0601_C01_001E)
+  rename(ZCTA_POP = S0601_C01_001E)
 
 
+saveRDS(ct_zcta_xwalk2020, "data/ct_zcta_xwalk2020.rds")
+
+#load svi from cdc (ct level in PA)
 svi_pa_2020 <- read_csv("cdc_us_svi/cdc_svi_2020_pa_ct.csv") %>% 
   rename(GEOID = FIPS)
 
