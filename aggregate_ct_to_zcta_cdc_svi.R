@@ -21,6 +21,7 @@ ct_zcta_xwalk2020 <- ct_zcta_xwalk2020 %>%
 
 
 saveRDS(ct_zcta_xwalk2020, "data/ct_zcta_xwalk2020.rds")
+#include population on zcta level
 
 #load svi from cdc (ct level in PA)
 svi_pa_2020 <- read_csv("cdc_us_svi/cdc_svi_2020_pa_ct.csv") %>% 
@@ -31,6 +32,8 @@ zsvi_pa_2020 <- svi_pa_2020 %>%
   relocate(ZCTA, .after = GEOID)
 
 zsvi_pa_2020 %>% filter(is.na(ZCTA))
+
+
 
 #when one census tract includes multiple zcta code, aggregated data usually quite off 
 #since you're doing sum for var, and you're adding bigger area to rep a small area
