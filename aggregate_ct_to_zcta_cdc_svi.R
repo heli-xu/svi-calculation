@@ -1,5 +1,8 @@
 
 # 0. Set up (.rds saved in data/)---------------------------------------------------------------
+library(tidyverse)
+library(ggridges)
+
 {
 #import downloaded relationship file from census (change every 10 yrs)
   ##2020
@@ -24,6 +27,7 @@ ct_zcta_xwalk2020 <- ct_zcta_xwalk2020 %>%
   rename(ZCTA_POP = E_TOTPOP)
 
 saveRDS(ct_zcta_xwalk2020, "data/ct_zcta_xwalk2020.rds")
+
 #include population on zcta level
 }
 
@@ -43,7 +47,7 @@ ct_zcta_xwalk2010 <- ct_zcta10 %>%
 
 saveRDS(ct_zcta_xwalk2010, "data/ct_zcta_xwalk2010.rds")
 }
-
+ct_zcta_xwalk2010 <- readRDS("data/ct_zcta_xwalk2010.rds")
 
 #load svi from cdc (ct level in PA)
 svi_pa_2020 <- read_csv("cdc_us_svi/cdc_svi_2020_pa_ct.csv") %>% 
@@ -80,7 +84,7 @@ ct_zcta_ratio2 <- zsvi_pa %>% group_by(GEOID) %>%
   filter(n<=2) %>% 
   pull(GEOID)
 
-ct_zcta_ratio1 <- zsvi_pa_2020 %>% group_by(GEOID) %>%
+ct_zcta_ratio1 <- zsvi_pa %>% group_by(GEOID) %>%
   count() %>%
   arrange(n) %>%
   filter(n==1) %>%
@@ -99,7 +103,7 @@ var_ep <- var_table %>%
 
 cdc <- zsvi_pa %>% 
   select(GEOID, ZCTA, all_of(var_e), all_of(var_ep)) %>%
-  filter(GEOID%in%all_of(ct_zcta_ratio2)) %>% 
+  filter(GEOID%in%all_of(ct_zcta_ratio1)) %>% 
   pivot_longer(-c(GEOID,ZCTA), names_to = "var_name", values_to = "value") %>% 
   filter(value >= 0) %>% 
   group_by(ZCTA, var_name) %>% 
@@ -107,6 +111,7 @@ cdc <- zsvi_pa %>%
   summarise(sum = sum(value),
     mean = mean(value)) %>%
   mutate(var_zcta = case_when(
+    var_name == "E_PCI" ~ mean,
     str_starts(var_name, "E_") ~ sum,
     str_starts(var_name, "EP_") ~ mean
   )) %>%
@@ -114,7 +119,9 @@ cdc <- zsvi_pa %>%
   select(-sum, -mean)
 
 
+
 # 3. Join aggregated CDC data to calculated result for correlation------------
+result2018 <- readRDS("cdc_us_svi/result/pa_zcta_result2018.rds")
 
 result <- result2018 %>% 
   select(ZCTA = GEOID, all_of(var_e), all_of(var_ep)) %>% 
@@ -129,8 +136,22 @@ cdc_result <- cdc %>%
   ungroup()
 
 #for E_PCI should be average not sum, but EP_PCI is the same value, and taken average
-#so just ignore that cor for E_PCI
 
+p1 <- cdc_result %>% 
+  select(var_name, cor) %>% 
+  filter(var_name%in%all_of(var_e)) %>% 
+  distinct() %>% 
+  ggplot(aes(x=cor, y = reorder(var_name, cor)))+
+  geom_col(fill = "#004C54")+
+  xlim(0,1)
+
+p2 <- cdc_result %>% 
+  select(var_name, cor) %>% 
+  filter(var_name%in%all_of(var_ep)) %>% 
+  distinct() %>% 
+  ggplot(aes(x=cor, y = reorder(var_name, cor)))+
+  geom_col(fill = "#49592a")+
+  xlim(0,1)
 
 # 4. Aggregate RPLs in CDC SVI and check coorelation ----------------------
 
@@ -153,7 +174,7 @@ cdc2 <- zsvi_pa %>%
 
 cdc2_result2 <- cdc2 %>% 
   left_join(
-     result2020 %>% 
+     result2018 %>% 
       select(
         ZCTA = GEOID, 
         RPL_themes,
@@ -172,7 +193,6 @@ cdc2_result2 <- cdc2 %>%
 
 cdc2_result2 %>% 
   ggplot(aes(x = cdc_RPL_themes, y = RPL_themes)) +
-  geom_point()+
-  geom_abline(slope = 1, intercept = 0, color = 'red')
-
+  geom_point(color = "#004C54")+
+  geom_abline(slope = 1, intercept = 0)
 
