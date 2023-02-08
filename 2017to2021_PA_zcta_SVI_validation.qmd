@@ -6,12 +6,26 @@ format:
   html:
     self-contained: true
     code-fold: true
+    toc: true
+    toc-location: left
 editor: visual
 execute: 
   warning: false
 ---
 
-## SVI calculation from census data
+Currently, we have stored our SVI calculation logic in R functions. Before we package our functions, we want to do some user testing and validation. In this case the user requested ZCTA level SVI calculations for PA. This document provides some validation for this process (perhaps in the future some form of this report will be automated during the calculation process).
+
+There are a few sections
+
+-   **Sanity Check - census tract validation:** section summarizes validation of our SVI calculation at the tract level by comparing home-brew PA results to CDC's PA state level results.
+
+-   **PA ZCTA-level SVI 2018:** Summary of ZCTA level calculation process for PA 2018 and pseudo-comparisons to aggregation of CDC tract to zcta level results.
+
+-   **PA ZCTA-level SVI 2020:** Summary of ZCTA level calculation process for PA 2020 and pseudo-comparisons to aggregation of CDC tract to zcta level results.
+
+## Sanity Check - census tract validation
+
+**Takeaway: Code works at the census tract level. Home-brew PA state tract-level highly correlates (\>0.99 fishers coef) with CDC PA state tract-level published data.**
 
 As included in a separate R script ("function collection.R"), `get_census_data()`(using {tidycensus} under the hood) and `get_svi()` were used to calculate SVI from census data. The variables were either extracted from the dictionary published by CDC when SVI was released (for 2014, 2016, 2018, 2020), or modified from the adjacent years to account for minor changes (for 2015, 2017, 2019, 2021). Details about the variables preparation are included in a separate script ("svi variable prep.R").
 
@@ -49,8 +63,8 @@ ct_check <- svi_pa_2018 %>%
         )
   ) 
 
-ct_check %>% 
-  filter(is.na(RPL_theme1)) %>% kable()
+# ct_check %>% 
+#   filter(is.na(RPL_theme1)) %>% kable()
 
 ct_corr1 <- ct_check %>% 
   drop_na() %>%   ## remove NA rows
@@ -82,7 +96,9 @@ ct_corr1+ct_corr2+
   theme(plot.title = element_text(size = 14))
 ```
 
-## Calculated vs. CDC SVI for 2018
+## PA ZCTA-level SVI 2018
+
+**Takeaway: overall correlation coef of \~0.8 during our pseudo comparison. Hard to aggregate SVI from tract-zcta; this may account for the weaker correlation. But 0.8 is similiar to those reported by Ran during BCHC work.**
 
 With SVI calculated at the ZCTA level in PA from 2017-2021, here we'd like to check the results against the CDC-published SVI data for PA in the years that they are available (2018 and 2020). Since SVI data released by CDC are either on county or census tract level for each state, we need to add ZCTA information to the SVI tables and aggregate the data from census tract level to ZCTA level. ZCTA to census tract (ct) crosswalk were modified from the relationship files (decennial) from [census.gov](https://www.census.gov/geographies/reference-files/time-series/geo/relationship-files.2020.html#list-tab-Z1E5E6KE884J6MIBIQ).
 
@@ -297,7 +313,9 @@ pa15207 %>%
   filter(GEOID%in%ct_zcta_r1_18) %>% kable()
 ```
 
-## Calculated vs. CDC SVI for 2020
+## PA ZCTA-level SVI 2020
+
+**Takeaway: overall correlation coef of \~0.8 during our pseudo comparison. Hard to aggregate SVI from tract-zcta; this may account for the weaker correlation. But 0.8 is similiar to those reported by Ran during BCHC work.**
 
 Similarly, we could aggregate and compare CDC SVI released for 2020 on the census tract level with our calculated result on the ZCTA level.
 
