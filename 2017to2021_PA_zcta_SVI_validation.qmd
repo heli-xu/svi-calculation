@@ -1,32 +1,100 @@
 ---
 title: "CDC SVI validation"
-format: html
+author: Heli Xu
+date: "02-08-2023"
+format: 
+  html:
+    self-contained: true
+    code-fold: true
 editor: visual
+execute: 
+  warning: false
 ---
 
 ## SVI calculation from census data
 
 As included in a separate R script ("function collection.R"), `get_census_data()`(using {tidycensus} under the hood) and `get_svi()` were used to calculate SVI from census data. The variables were either extracted from the dictionary published by CDC when SVI was released (for 2014, 2016, 2018, 2020), or modified from the adjacent years to account for minor changes (for 2015, 2017, 2019, 2021). Details about the variables preparation are included in a separate script ("svi variable prep.R").
 
-With SVI calculated at the ZCTA level in PA from 2017-2021, here we'd like to check the results against the CDC-published SVI data at state level (PA) in the years that they are available (2018 and 2020).
-
-SVI tables for PA at census tract level were downloaded for PA in 2018, 2020 from [CDC/ATSDR SVI website](https://www.atsdr.cdc.gov/placeandhealth/svi/data_documentation_download.html). In order to compare them with our result, we need to add ZCTA information to the SVI tables and aggregate the data from census tract level to ZCTA level. ZCTA to census tract (ct) crosswalk were modified from the relationship files (decennial) from [census.gov](https://www.census.gov/geographies/reference-files/time-series/geo/relationship-files.2020.html#list-tab-Z1E5E6KE884J6MIBIQ).
-
-## Calculated vs. CDC SVI for 2018
-
-### Add ZCTA information to CDC-released SVI
-
-For 2018, we're using ZCTA to census tract crosswalk for 2010 and here is a glance at the CDC SVI data on the ct level updated with ZCTA codes (first 6 rows):
+As part of the calculation validation process, county and census tract level SVI for certain states are calculated and compared with [CDC-released SVI](https://www.atsdr.cdc.gov/placeandhealth/svi/data_documentation_download.html) for the same year (if available) or adjacent year, making sure the two versions of SVIs by GEOID are well correlated. For example, our SVI calculation for PA in 2018 on census tract level are highly consistent with the CDC data for 2018, with a correlation coefficient above 0.99 for overall and theme-specific SVI.
 
 ```{r}
 library(tidyverse)
 library(patchwork)
 library(knitr)
 
-ct_zcta_xwalk2010 <- readRDS("data/ct_zcta_xwalk2010.rds")
+result_ct_pa2018 <- readRDS("cdc_us_svi/result/pa_tract_result2018.rds")
 
 svi_pa_2018 <- read_csv("cdc_us_svi/cdc_svi_2018_pa_ct.csv") %>% 
   rename(GEOID = FIPS)
+
+ct_check <- svi_pa_2018 %>% 
+  select(
+    GEOID, 
+    cdc_RPL_themes = RPL_THEMES, 
+    cdc_RPL_theme1 = RPL_THEME1,
+    cdc_RPL_theme2 = RPL_THEME2,
+    cdc_RPL_theme3 = RPL_THEME3,
+    cdc_RPL_theme4 = RPL_THEME4
+    ) %>%
+  mutate(GEOID = paste(GEOID)) %>% 
+  left_join(
+    result_ct_pa2018 %>% 
+      select(
+        GEOID, 
+        RPL_themes,
+        RPL_theme1,
+        RPL_theme2,
+        RPL_theme3, 
+        RPL_theme4
+        )
+  ) 
+
+ct_check %>% 
+  filter(is.na(RPL_theme1)) %>% kable()
+
+ct_corr1 <- ct_check %>% 
+  drop_na() %>%   ## remove NA rows
+  filter_all(all_vars(.>=0)) %>%
+  transmute(overall = cor(cdc_RPL_themes, RPL_themes),
+    theme1 = cor(cdc_RPL_theme1, RPL_theme1),
+    theme2 = cor(cdc_RPL_theme2, RPL_theme2),
+    theme3 = cor(cdc_RPL_theme3, RPL_theme3),
+    theme4 = cor(cdc_RPL_theme4, RPL_theme4)) %>% 
+  distinct() %>% 
+ pivot_longer(1:5, names_to = "theme", values_to = "value") %>% 
+  ggplot()+
+  geom_col(aes(x=theme, y = value), fill= "#004C54")+
+  labs(y = "Corr. coeff.")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ct_corr2 <- ct_check %>% 
+  drop_na() %>% 
+  filter_all(all_vars(.>=0)) %>% 
+  ggplot(aes(x = cdc_RPL_themes, y = RPL_themes)) +
+  geom_point(color = "#004C54")+
+  geom_abline(slope = 1, intercept = 0)+
+  labs(y = "calculated overall RPL",
+    x = "CDC overall RPL")
+
+ct_corr1+ct_corr2+
+  plot_annotation(title = "Correlation coeff. for percentile rankings (RPLs)",
+    subtitle = "between calculated & CDC SVI in 2018 (ct level)")&
+  theme(plot.title = element_text(size = 14))
+```
+
+## Calculated vs. CDC SVI for 2018
+
+With SVI calculated at the ZCTA level in PA from 2017-2021, here we'd like to check the results against the CDC-published SVI data for PA in the years that they are available (2018 and 2020). Since SVI data released by CDC are either on county or census tract level for each state, we need to add ZCTA information to the SVI tables and aggregate the data from census tract level to ZCTA level. ZCTA to census tract (ct) crosswalk were modified from the relationship files (decennial) from [census.gov](https://www.census.gov/geographies/reference-files/time-series/geo/relationship-files.2020.html#list-tab-Z1E5E6KE884J6MIBIQ).
+
+### Add ZCTA information to CDC-released SVI
+
+For 2018, we're using ZCTA to census tract crosswalk for 2010 and here is a glance at the CDC SVI data on the ct level updated with ZCTA codes (first 6 rows):
+
+```{r}
+
+ct_zcta_xwalk2010 <- readRDS("data/ct_zcta_xwalk2010.rds")
+
+
 
 zsvi_pa2018 <- svi_pa_2018 %>% 
   left_join(ct_zcta_xwalk2010, by = "GEOID") %>% 
@@ -38,7 +106,7 @@ zsvi_pa2018 %>% head() %>% kable()
 We could briefly check if there's any GEOID (ct) that didn't get matched with a ZCTA code:
 
 ```{r}
-zsvi_pa2018 %>% filter(is.na(ZCTA))
+zsvi_pa2018 %>% filter(is.na(ZCTA)) 
 ```
 
 ### Aggregating ct data to ZCTA level
@@ -113,7 +181,7 @@ cdc18_2 <- zsvi_pa2018 %>%
 cdc18_2 %>% head(10) %>% kable()
 ```
 
-### Correlation: aggregated CDC data vs. calculated result 
+### Correlation: aggregated CDC data vs. calculated result
 
 To compare the aggregated CDC SVI data with our calculated SVI, first we're joining the CDC data with our result by each ZCTA, then we could check the correlation between the two versions of SVI in all ZCTAs.
 
@@ -156,8 +224,8 @@ p18_ep <- cdc_result18 %>%
     x = "corr. coeff.")
 
 p18_e+p18_ep+
-  plot_annotation(title = "Correlation coeff. for each variable",
-    subtitle = "between calculated & CDC SVI in 2018")&
+  plot_annotation(title = "Correlation coeff. for each variable in SVI calculation",
+    subtitle = "between calculated & CDC SVI in 2018 (zcta level)")&
   theme(plot.title = element_text(size = 15))
 ```
 
@@ -206,7 +274,7 @@ p18_rpls <- cdc_result18_2 %>%
 
 p18_rpl+p18_rpls+
   plot_annotation(title = "Correlation coeff. for percentile rankings (RPLs)",
-    subtitle = "between calculated & CDC SVI in 2018")&
+    subtitle = "between calculated & CDC SVI in 2018 (zcta level)")&
   theme(plot.title = element_text(size = 14))
 ```
 
@@ -226,7 +294,7 @@ But among these census tracts, almost all of them match to other ZCTAs, and the 
 
 ```{r}
 pa15207 %>% 
-  filter(GEOID%in%ct_zcta_ratio1) %>% kable()
+  filter(GEOID%in%ct_zcta_r1_18) %>% kable()
 ```
 
 ## Calculated vs. CDC SVI for 2020
@@ -248,7 +316,7 @@ zsvi_pa2020 <- svi_pa_2020 %>%
 
 zsvi_pa2020 %>% head() %>% kable()
 
-zsvi_pa2020 %>% filter(is.na(ZCTA))
+zsvi_pa2020 %>% filter(is.na(ZCTA)) %>% kable()
 ```
 
 Secondly, we'll aggregate the CDC data from ct level to ZCTA level, including the variables and percentile rankings by theme (first 15 rows of each table is shown below).
@@ -264,12 +332,12 @@ ct_zcta_r1_20 <- zsvi_pa2020 %>% group_by(GEOID) %>%
 #aggregate by types of variables
 var_table20 <- readRDS("data/variable_e_ep_calculation_2020.rds")
 
-var_e20 <- var_table %>% 
+var_e20 <- var_table20 %>% 
   filter(theme%in%c(0:4),
     str_detect(.[[1]], "E_")) %>% 
   pull(1)
 
-var_ep20 <- var_table %>% 
+var_ep20 <- var_table20 %>% 
   filter(theme%in%c(0:4),
     str_detect(.[[1]], "EP_")) %>% 
   pull(1)
@@ -320,13 +388,13 @@ result20 <- result2020 %>%
   filter(value_hx >= 0)
 
 cdc_result20 <- cdc20 %>% 
-  left_join(result, by= c("ZCTA", "var_name")) %>% 
+  left_join(result20, by= c("ZCTA", "var_name")) %>% 
   drop_na() %>% 
   group_by(var_name) %>% 
   mutate(cor = cor(var_zcta, value_hx)) %>% 
   ungroup()
 
-p20_e <- cdc_result %>% 
+p20_e <- cdc_result20 %>% 
   select(var_name, cor) %>% 
   filter(var_name%in%all_of(var_e20)) %>% 
   distinct() %>% 
@@ -337,7 +405,7 @@ p20_e <- cdc_result %>%
     y = "variable name",
     x = "corr. coeff.")
 
-p20_ep <- cdc_result %>% 
+p20_ep <- cdc_result20 %>% 
   select(var_name, cor) %>% 
   filter(var_name%in%all_of(var_ep20)) %>% 
   distinct() %>% 
@@ -349,8 +417,8 @@ p20_ep <- cdc_result %>%
     x = "corr. coeff.")
 
 p20_e+p20_ep+
-  plot_annotation(title = "Correlation coeff. for each variable",
-    subtitle = "between calculated & CDC SVI in 2020")&
+  plot_annotation(title = "Correlation coeff. for each variable in SVI calculation",
+    subtitle = "between calculated & CDC SVI in 2020 (zcta level)")&
   theme(plot.title = element_text(size = 15))
 ```
 
@@ -397,7 +465,7 @@ p20_rpls <- cdc_result20_2 %>%
 
 p20_rpl+p20_rpls+
   plot_annotation(title = "Correlation coeff. for percentile rankings (RPLs)",
-    subtitle = "between calculated & CDC SVI in 2020")&
+    subtitle = "between calculated & CDC SVI in 2020 (zcta level)")&
   theme(plot.title = element_text(size = 15))
   
 ```

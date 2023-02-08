@@ -22,7 +22,7 @@ get_census_data <- function(year, geography, state = NULL, ...){
 
 
 data <- get_census_data(2014, "tract", "RI")
-data <- get_census_data(2019, "tract", "RI")
+data <- get_census_data(2018, "tract", "PA")
 
 data2021 <- get_census_data(2021, "zcta")
 data2021_pa <- data2021 %>% filter(GEOID%in%all_of(pa_zcta2021))
@@ -206,4 +206,4 @@ get_svi <- function(year, data){
 
 
 
-result <- get_svi(2017, data = data2017)
+result <- get_svi(2018, data = data)

@@ -12,6 +12,9 @@ PA_2016_svi_co <- read_csv("download/2016svi_pa_co_cdc.csv") %>%
 PA_2020_ct <- read_csv("cdc_us_svi/cdc_svi_2020_pa_ct.csv") %>% 
   rename(GEOID = FIPS) 
 
+PA_2018_ct <- read_csv("cdc_us_svi/cdc_svi_2018_pa_ct.csv") %>% 
+  rename(GEOID = FIPS) 
+
 RI_2020_svi_ct <- read_csv("download/RI_tract_2020.csv") %>% 
   rename(GEOID = FIPS)
 
