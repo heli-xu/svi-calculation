@@ -1,31 +1,31 @@
 ---
-title: "CDC SVI validation"
+title: "CDC SVI calculation and validation"
 author: Heli Xu
 date: "02-08-2023"
 editor: visual
-format: 
-  docx:
-    toc: true
-    df-print: kable
-execute: 
-  warning: false
-  echo: false
 # format: 
-#   html:
-#     df_print: kable
-#     self-contained: true
-#     code-fold: true
+#   docx:
 #     toc: true
-#     toc-location: left
+#     df-print: default
 # execute: 
 #   warning: false
+#   echo: false
+format:
+  html:
+    df-print: kable
+    self-contained: true
+    code-fold: true
+    toc: true
+    toc-location: left
+execute:
+  warning: false
 ---
 
-Currently, our SVI calculation logic is stored in R functions , and we're in the process of package development. In responding to the request for PA SVI at ZCTA level from 2017-2021, we'd like to include this report to provide the rationale and methods used in validating the results. Any suggestions and feedback are greatly appreciated.
+Currently, our SVI calculation logic is stored in R functions , and we're in the process of package development. In responding to the request for PA SVI at the ZCTA level from 2017-2021, we'd like to include this report to provide the rationale and approaches used in validating the results. Any suggestions and feedback are greatly appreciated.
 
 This report will cover the following sections:
 
--   **SVI calculation and validation:** Brief introduction to SVI calculation and variables preparation, validated by comparing our results to CDC's SVI (example: PA, tract level, 2018);
+-   **SVI calculation and validation:** Brief introduction to SVI calculation and variables preparation which are validated by comparing our county-/tract-level results to CDC's SVI (example: PA, tract level, 2018);
 
 -   **PA ZCTA-level SVI 2018:** Summary of the approaches for aggregating CDC tract-level data to ZCTA level and comparing it with our PA ZCTA-level result for 2018;
 
@@ -109,10 +109,10 @@ With SVI calculated at the ZCTA level in PA from 2017-2021, here we'd like to ch
 
 ### Add ZCTA information to CDC-released SVI
 
-For 2018, we're using ZCTA to census tract crosswalk for 2010 and here is a glance at the CDC SVI data at the ct level updated with ZCTA codes (first 6 rows):
+Using ZCTA to census tract crosswalk for 2010, we're matching each census tract in the 2018 CDC SVI table with a corresponding ZCTA (first few tracts shown below):
 
 ```{r}
-
+library(flextable)
 ct_zcta_xwalk2010 <- readRDS("data/ct_zcta_xwalk2010.rds")
 
 
@@ -121,10 +121,10 @@ zsvi_pa2018 <- svi_pa_2018 %>%
   left_join(ct_zcta_xwalk2010, by = "GEOID") %>% 
   relocate(ZCTA, .after = GEOID)
 
-zsvi_pa2018 %>% head() ##%>% kable()
+zsvi_pa2018 %>% head() %>%  select(1:7) %>% kable()
 ```
 
-We could briefly check if there's any GEOID (ct) that didn't get matched with a ZCTA code:
+We could briefly check if there's any GEOID (ct) that didn't get matched with a ZCTA code (none):
 
 ```{r}
 zsvi_pa2018 %>% filter(is.na(ZCTA)) 
@@ -134,7 +134,7 @@ zsvi_pa2018 %>% filter(is.na(ZCTA))
 
 Generally speaking, ZCTAs represent larger areas than census tracts, but census tracts do not necessarily nest within ZCTAs -- sometimes one census tract could correspond to multiple ZCTAs (while one or more of those ZCTAs also show up in other census tracts). In such cases, we might be aggregating values of a larger area to represent a smaller area. Considering the complicated relationship between ZCTAs and census tracts, here we're subsetting the ct-specific GEOIDs with only one matching ZCTA (different ct can be matched to the same ZCTA).
 
-The potential caveat is that we might be over-representing some census tracts for a ZCTA when it's supposed to include multiple census tracts, but some of the census tracts are excluded because they're also matched to other ZCTAs. We'll give one example later in this document.
+The potential caveat is that we might be over-representing some census tracts for a ZCTA when it's supposed to include multiple census tracts, but some of the census tracts are excluded because they're also matched to other ZCTAs. An example will be provided later in this document.
 
 #### Variables ("E_xx" and "EP_xx")
 
@@ -177,7 +177,7 @@ cdc18 <- zsvi_pa2018 %>%
   ungroup() %>% 
   select(-sum, -mean)
 
-cdc18 %>% head(15) ##%>% kable()
+cdc18 %>% head(15) %>% kable()
 ```
 
 #### Percentile ranking ("RPL_xx") by theme
@@ -199,12 +199,12 @@ cdc18_2 <- zsvi_pa2018 %>%
   mutate(ZCTA = paste(ZCTA)) %>% 
   ungroup()
 
-cdc18_2 %>% head(10) ##%>% kable()
+cdc18_2 %>% head(10) %>% kable()
 ```
 
 ### Correlation: aggregated CDC data vs. calculated result
 
-To compare the aggregated CDC SVI data with our calculated SVI, first we're joining the CDC data with our result by each ZCTA, then we could check the correlation between the two versions of SVI in all ZCTAs.
+To compare the aggregated CDC SVI data with our calculated SVI, we're joining the CDC data with our result by each ZCTA, and we could check the correlation between the two versions of SVI in all ZCTAs.
 
 For individual variables, below shows the correlation coefficient for each variable:
 
@@ -247,7 +247,7 @@ p18_ep <- cdc_result18 %>%
 p18_e+p18_ep+
   plot_annotation(title = "Correlation coeff. for each variable in SVI calculation",
     subtitle = "between calculated & CDC SVI in 2018 (zcta level)")&
-  theme(plot.title = element_text(size = 15))
+  theme(plot.title = element_text(size = 14))
 ```
 
 For RPLs, we'll compare RPL for each theme and overall RPL for all themes. Here is a plot for the overall RPL for all themes of each ZCTA:
@@ -301,30 +301,30 @@ p18_rpl+p18_rpls+
 
 ### Potential over-representation after aggregation
 
-In the plot above, there's a point that's close to 1 in calculated result, but less than 0.25 in CDC data. That is ZCTA 15207. In CDC data, this ZCTA has the following census tracts:
+In the plot above, we notice a data point that is close to 1 in calculated result, but less than 0.25 in CDC data. That point corresponds to ZCTA 15207. In CDC data, this ZCTA has the following census tracts:
 
 ```{r}
 pa15207 <- zsvi_pa2018 %>% filter(ZCTA == "15207") %>% 
   select(GEOID, ZCTA, RPL_THEMES, RPL_THEME1, RPL_THEME2,
     RPL_THEME3, RPL_THEME4) 
 
-pa15207 ##%>% kable()
+pa15207 %>%  kable()
 ```
 
 But among these census tracts, almost all of them match to other ZCTAs, and the ones end up included in the aggregation are the following two (and the -999 gets further excluded):
 
 ```{r}
 pa15207 %>% 
-  filter(GEOID%in%ct_zcta_r1_18) #%>% kable()
+  filter(GEOID%in%ct_zcta_r1_18) %>% kable()
 ```
+
+That's why the "aggregated" SVI for ZCTA15207 in fact only represents one of the census tracts in the area, leading to a discrepancy with our calculated result.
 
 ## PA ZCTA-level SVI 2020
 
-**Takeaway: overall correlation coef of \~0.8 during our pseudo comparison. Hard to aggregate SVI from tract-zcta; this may account for the weaker correlation. But 0.8 is similiar to those reported by Ran during BCHC work.**
+Similarly, we could aggregate and compare CDC-released SVI for 2020 at the census tract level with our calculated result at the ZCTA level.
 
-Similarly, we could aggregate and compare CDC SVI released for 2020 at the census tract level with our calculated result at the ZCTA level.
-
-First, we're joining the CDC SVI table to a new ZCTA to census tract crosswalk updated in 2020 (a glance at the table, and a brief check for unmatched GEOIDs):
+First, we're joining the CDC SVI table to a new ZCTA to census tract crosswalk updated in 2020. Here is a glance at the table:
 
 ```{r}
 
@@ -337,12 +337,19 @@ zsvi_pa2020 <- svi_pa_2020 %>%
   left_join(ct_zcta_xwalk2020, by = "GEOID") %>% 
   relocate(ZCTA, .after = GEOID)
 
-zsvi_pa2020 %>% head() #%>% kable()
+zsvi_pa2020 %>% head() %>% select(1:7) %>%  kable()
 
-zsvi_pa2020 %>% filter(is.na(ZCTA)) #%>% kable()
+```
+
+And a brief check for unmatched GEOIDs for reference:
+
+```{r}
+zsvi_pa2020 %>% filter(is.na(ZCTA)) %>% select(1:7) %>% kable()
 ```
 
 Secondly, we'll aggregate the CDC data from ct level to ZCTA level, including the variables and percentile rankings by theme (first 15 rows of each table is shown below).
+
+Aggregated data for all variables:
 
 ```{r}
 #select ct:zcta = 1
@@ -381,7 +388,13 @@ cdc20 <- zsvi_pa2020 %>%
   ungroup() %>% 
   select(-sum, -mean)
 
-cdc20 %>% head(15) %>%  kable()
+cdc20 %>% head(15) %>%   kable()
+
+```
+
+Aggregated data for percentile rankings:
+
+```{r}
 
 cdc20_2 <- zsvi_pa2020 %>% 
   drop_na(ZCTA) %>% 
@@ -397,7 +410,9 @@ cdc20_2 <- zsvi_pa2020 %>%
   mutate(ZCTA = paste(ZCTA)) %>% 
   ungroup()
 
-cdc20_2 %>% head(15) #%>% kable()
+
+
+cdc20_2 %>% head(15) %>%   kable()
 ```
 
 After adding ZCTA information and aggregating the CDC data, we're ready to compare them to our calculated result for 2020. Most of the variables turn out quite consistent between our calculation and aggregated CDC data, despite a few peculiar outliers (shown in the correlation plot), possibly due to over-representation of some census tracts.
