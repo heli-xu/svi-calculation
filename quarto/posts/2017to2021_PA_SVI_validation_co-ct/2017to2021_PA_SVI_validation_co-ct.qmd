@@ -1,0 +1,183 @@
+---
+title: "SVI Calculation Validation (CO and CT level)"
+subtitle: "for PA in 2018 and 2020"
+author: Heli Xu
+date: "02-21-2023"
+editor: visual
+# format: 
+#   docx:
+#     toc: true
+#     df-print: default
+# execute: 
+#   warning: false
+#   echo: false
+format:
+  html:
+    df-print: kable
+    self-contained: true
+    code-fold: true
+    toc: true
+    toc-location: left
+execute:
+  warning: false
+---
+
+As briefly mentioned in the previous report, we validate our functions to calculate SVI by comparing our results with CDC SVI of the same or adjacent year. Here, we are providing further details on the validation process at the county and census tract level. Any suggestions and feedback are greatly appreciated.
+
+This report will cover the following sections:
+
+-   **SVI calculation:** Brief introduction to SVI calculation and variables preparation;
+
+-   **SVI calculation validation:** Using PA as an example, comparing our calculation results with CDC SVI at both the census tract and county level in 2018 and 2020.
+
+## SVI calculation
+
+As included in a separate R script ("function collection.R"), `get_census_data()`(using {tidycensus} under the hood) was used to retrieve census data at the geographic level of interest, and `get_svi()` was used to calculate SVI from the census data based on [CDC/ATSDR SVI documentation](https://www.atsdr.cdc.gov/placeandhealth/svi/data_documentation_download.html). The variables required for SVI calculation were either extracted from the documentation when SVI was released (for 2014, 2016, 2018, 2020), or modified from the adjacent years to account for minor changes (for 2015, 2017, 2019, 2021). Details about the variables preparation are included in a separate script ("svi variable prep.R").
+
+## SVI calculation validation
+
+As part of the validation process for our R functions, county and census tract level SVI for certain states are calculated and compared with [CDC-released SVI](https://www.atsdr.cdc.gov/placeandhealth/svi/data_documentation_download.html) for the same year (if available) or adjacent year, making sure the two versions of SVIs by GEOID are well correlated.
+
+### Census tract level
+
+For example, our calculated SVI for PA in 2018 and 2020 at census tract level is highly consistent with the CDC data for the corresponding year, with a correlation coefficient above 0.99 for overall and theme-specific SVI.
+
+```{r}
+library(tidyverse)
+library(patchwork)
+library(knitr)
+
+
+result_ct_pa2018 <- readRDS("../../../cdc_us_svi/result/pa_tract_result2018.rds")
+
+svi_pa_2018 <- read_csv("../../../cdc_us_svi/cdc_svi_2018_pa_ct.csv") %>% 
+  rename(GEOID = FIPS)
+
+#make a function for joining CDC SVI and our results
+join_table <- function(cdc, diy){
+  cdc %>% 
+    select(
+      GEOID,
+      cdc_RPL_themes = RPL_THEMES,
+      cdc_RPL_theme1 = RPL_THEME1,
+      cdc_RPL_theme2 = RPL_THEME2,
+      cdc_RPL_theme3 = RPL_THEME3,
+      cdc_RPL_theme4 = RPL_THEME4
+    ) %>%
+    mutate(GEOID = paste(GEOID)) %>%
+    left_join(
+      diy %>%
+        select(
+          GEOID,
+          RPL_themes,
+          RPL_theme1,
+          RPL_theme2,
+          RPL_theme3,
+          RPL_theme4
+        )
+    ) 
+}
+
+ct_check18 <- join_table(svi_pa_2018, result_ct_pa2018)
+
+# ct_check %>% 
+#   filter(is.na(RPL_theme1)) #%>% kable()
+
+#make plotting functions
+plot1 <- function(table, color){
+  table %>% 
+  drop_na() %>%   ## remove NA rows
+  filter_all(all_vars(.>=0)) %>%
+  transmute(overall = cor(cdc_RPL_themes, RPL_themes),
+    theme1 = cor(cdc_RPL_theme1, RPL_theme1),
+    theme2 = cor(cdc_RPL_theme2, RPL_theme2),
+    theme3 = cor(cdc_RPL_theme3, RPL_theme3),
+    theme4 = cor(cdc_RPL_theme4, RPL_theme4)) %>% 
+  distinct() %>% 
+ pivot_longer(1:5, names_to = "theme", values_to = "value") %>% 
+  ggplot()+
+  geom_col(aes(x=theme, y = value), fill= color)+
+  labs(y = "Corr. coeff.")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+}
+
+plot2 <- function(table, color){
+  table %>% 
+  drop_na() %>% 
+  filter_all(all_vars(.>=0)) %>% 
+  ggplot(aes(x = cdc_RPL_themes, y = RPL_themes)) +
+  geom_point(color = color)+
+  geom_abline(slope = 1, intercept = 0)+
+  labs(y = "calculated overall RPL",
+    x = "CDC overall RPL")
+}
+
+ct_corr1_18 <- plot1(ct_check18, "#004C54")
+
+ct_corr2_18 <- plot2(ct_check18, "#004C54")
+
+ct_corr1_18+ct_corr2_18+
+  plot_annotation(
+    title = "Calculated SVI vs CDC SVI for PA in 2018 (CT level)",
+    subtitle = "Correlation coeff. for percentile rankings (RPLs)")&
+  theme(plot.title = element_text(size = 15))
+```
+
+```{r}
+result_ct_pa2020 <- readRDS("../../../cdc_us_svi/result/pa_tract_result2020.rds")
+
+svi_pa_2020 <- read_csv("../../../cdc_us_svi/cdc_svi_2020_pa_ct.csv") %>% 
+  rename(GEOID = FIPS)
+
+ct_check20 <- join_table(svi_pa_2020, result_ct_pa2020)
+
+
+ct_corr1_20 <- plot1(ct_check20, "#191970")
+ct_corr2_20 <- plot2(ct_check20, "#191970")
+
+ct_corr1_20+ct_corr2_20+
+  plot_annotation(
+    title = "Calculated SVI vs CDC SVI for PA in 2020 (CT level)",
+    subtitle = "Correlation coeff. for percentile rankings (RPLs)")&
+  theme(plot.title = element_text(size = 15))
+```
+
+### County level
+
+Additionally, we also see a strong correlation between our calculation result and CDC SVI at the county level for PA in 2018 and 2020.
+
+```{r}
+result2018_co <- readRDS("../../../cdc_us_svi/result/pa_co_result2018.rds")
+
+svi_pa_2018co <- read_csv("../../../download/2018svi_pa_co_cdc.csv") %>% 
+  rename(GEOID = FIPS)
+
+co_check18 <- join_table(svi_pa_2018co, result2018_co)
+
+co_corr1_18 <- plot1(co_check18, "#004C54")
+co_corr2_18 <- plot2(co_check18, "#004C54")
+
+co_corr1_18+co_corr2_18+
+  plot_annotation(
+    title = "Calculated SVI vs CDC SVI for PA in 2018 (CO level)",
+    subtitle = "Correlation coeff. for percentile rankings (RPLs)")&
+  theme(plot.title = element_text(size = 14))
+```
+
+```{r}
+result2020_co <- readRDS("../../../cdc_us_svi/result/pa_co_result2020.rds")
+
+svi_pa_2020co <- read_csv("../../../download/2020svi_pa_co_cdc.csv") %>% 
+  rename(GEOID = FIPS)
+
+co_check20 <- join_table(svi_pa_2020co, result2020_co)
+
+co_corr1_20 <- plot1(co_check20, "#191970")
+co_corr2_20 <- plot2(co_check20, "#191970")
+
+co_corr1_20+co_corr2_20+
+  plot_annotation(
+    title = "Calculated SVI vs CDC SVI for PA in 2020 (CO level)",
+    subtitle = "Correlation coeff. for percentile rankings (RPLs)")&
+  theme(plot.title = element_text(size = 14))
+```
