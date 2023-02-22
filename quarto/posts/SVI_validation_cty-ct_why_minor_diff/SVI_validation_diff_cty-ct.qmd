@@ -17,7 +17,7 @@ execute:
 
 In the SVI calculation validation process, while we we see very strong correlations between our calculated result and CDC-released SVI of the same year at the county and census tract level (detailed in previous post), we do observe minor differences. Here, we explore the reasons why our calculation is not identical with CDC SVI.
 
-For example, here is a scatter plot showing the correlation of the two versions of CT-level SVI for PA in 2018:
+For example, here is a scatter plot showing the correlation of the two versions of CT-level SVI for PA in 2018 (the tract with largest difference between CDC and calculated RPL highlighted in red):
 
 ```{r}
 library(tidyverse)
@@ -29,6 +29,8 @@ result_ct_pa2018 <- readRDS("../../../cdc_us_svi/result/pa_tract_result2018.rds"
 
 svi_pa_2018 <- read_csv("../../../cdc_us_svi/cdc_svi_2018_pa_ct.csv") %>% 
   rename(GEOID = FIPS)
+
+bad_tract = '42071010900'
 
 #make a function for joining CDC SVI and our results
 join_table <- function(cdc, diy){
@@ -62,6 +64,9 @@ ct_check18 %>%
   filter_all(all_vars(.>=0)) %>% 
   ggplot(aes(x = cdc_RPL_themes, y = RPL_themes)) +
   geom_point(color = "#004C54")+
+  geom_point(data = ct_check18 %>% filter(GEOID == "42071010900"),
+    aes(x = cdc_RPL_themes, y = RPL_themes),
+    color = 'red')+
   geom_abline(slope = 1, intercept = 0)+
   labs(title = "CDC vs. calculated CT-level SVI for PA in 2018",
     subtitle = "Comparison of overall percentile ranking (RPLs)",
@@ -76,24 +81,25 @@ There are clearly some dots wandering (a bit) away from the line. If we're retri
 
 ## Minor differences at CT level
 
-Using the same example as the plot above, we'll specifically look at the difference between the two versions of overall RPLs for all tracts (GEOIDs). Arranging the difference in descending order, we can get a glance at the tracts with relatively high discrepancy between the RPLs from CDC SVI and ours (first 15 rows are shown below).
+Using the same example as the plot above, we'll specifically look at the difference (absolute value) between the two versions of overall RPLs for all tracts (GEOIDs). Arranging the difference in descending order, we can get a glance at the tracts with relatively high discrepancy between the RPLs from CDC SVI and ours (first 15 rows are shown below).
 
 ```{r}
-ct_diff18 <- ct_check18 %>% 
+ct_diff18 <- ct_check18 %>%
+  filter_all(all_vars(.>=0)) %>% 
   select(GEOID, cdc_RPL_themes, RPL_themes) %>% 
-  mutate(diff_all = cdc_RPL_themes- RPL_themes) %>% 
+  mutate(diff_all = abs(cdc_RPL_themes- RPL_themes)) %>% 
   arrange(desc(diff_all))
 
 ct_diff18 %>% head(15) %>% kable()
 
 ```
 
-Zooming in on the GEOID with the largest difference between the two versions of RPLs, 42091206006, we could extract information on individual variable from our calculated SVI and CDC SVI. (In the table below, calculated SVI is denoted as "hSVI", CDC SVI is denoted as "cSVI).
+Zooming in on the GEOID with the largest difference between the two versions of RPLs, 42071010900, we could extract information on individual variable from our calculated SVI and CDC SVI. (In the table below, calculated SVI is denoted as "hSVI", and CDC SVI is denoted as "cSVI; "diff" column contains the difference between hSVI and cSVI and arranged in descending order.)
 
 ```{r}
 options(scipen = 9999)
 
-diy18 <- result_ct_pa2018 %>% filter(GEOID == "42091206006") %>% 
+diy18 <- result_ct_pa2018 %>% filter(GEOID == "42071010900") %>% 
   select(-NAME,
     SPL_THEMES = SPL_themes,
     SPL_THEME1 = SPL_theme1,
@@ -109,7 +115,7 @@ diy18 <- result_ct_pa2018 %>% filter(GEOID == "42091206006") %>%
   mutate(hSVI = round(hSVI, 4))
 
 
-cdc18 <- svi_pa_2018 %>% filter(GEOID == "42091206006") %>% 
+cdc18 <- svi_pa_2018 %>% filter(GEOID == "42071010900") %>% 
   select(-(1:5), -LOCATION, -AREA_SQMI) %>% 
   mutate(GEOID = paste(GEOID)) %>% 
   pivot_longer(-1, names_to = "var_name", values_to = "cSVI")
@@ -117,16 +123,18 @@ cdc18 <- svi_pa_2018 %>% filter(GEOID == "42091206006") %>%
 diff18 <- diy18 %>% 
   select(-GEOID) %>% 
   left_join(cdc18, by = "var_name") %>% 
-  relocate(GEOID, .before = var_name)
+  relocate(GEOID, .before = var_name) %>% 
+  mutate(diff = abs(hSVI-cSVI)) %>% 
+  arrange(desc(diff))
 
 diff18 %>% kable()
 ```
 
-From the side-by-side comparison, the minor discrepancy in RPLs is most likely due to different number of decimal places in some EP_variables. While cSVI is using one decimal places for the EP_variables (when calculation is required, that is, when the percentage information cannot be retrieved directly from census data), hSVI does not specify decimal places and therefore shows more digits after decimal point.
+From the side-by-side comparison, the minor discrepancy in RPLs (and SPLs, EPLs) is most likely due to different number of decimal places in some EP_variables. While cSVI is using one decimal places for the EP_variables (when calculation is required, that is, when the percentage information cannot be retrieved directly from census data), hSVI does not specify decimal places and therefore shows more digits after decimal point.
 
 ## Minor differences at CTY level
 
-Additionally, we could take a closer look at the minor difference at the county level, using the SVIs for PA in 2020 this time (first 15 rows are shown below).
+Additionally, we could take a closer look at the minor difference at the county level, using the SVIs for PA in 2020 this time. Below shows a correlation scatter plot of overall RPLs between CDC and calculated version, with the most different data points (tied) in red.
 
 ```{r}
 result2020_co <- readRDS("../../../cdc_us_svi/result/pa_co_result2020.rds")
@@ -136,19 +144,39 @@ svi_pa_2020co <- read_csv("../../../download/2020svi_pa_co_cdc.csv") %>%
 
 co_check20 <- join_table(svi_pa_2020co, result2020_co)
 
+co_check20 %>% 
+  drop_na() %>% 
+  filter_all(all_vars(.>=0)) %>% 
+  ggplot(aes(x = cdc_RPL_themes, y = RPL_themes)) +
+  geom_point(color = "#191970")+
+  geom_point(data = co_check20 %>% filter(GEOID%in%c("42067", "42061")),
+    aes(x = cdc_RPL_themes, y = RPL_themes),
+    color = 'red')+
+  geom_abline(slope = 1, intercept = 0)+
+  labs(title = "CDC vs. calculated CTY-level SVI for PA in 2020",
+    subtitle = "Comparison of overall percentile ranking (RPLs)",
+    y = "calculated overall RPL",
+    x = "CDC overall RPL")+
+  theme(plot.title = element_text(size= 15))
 
+```
+
+Also, the top 15 counties that have the largest difference between CDC and our calculated RPLs are included below:
+
+```{r}
 co_diff20 <- co_check20 %>% 
+  filter_all(all_vars(.>=0)) %>% 
   select(GEOID, cdc_RPL_themes, RPL_themes) %>% 
-  mutate(diff_all = cdc_RPL_themes- RPL_themes) %>% 
+  mutate(diff_all = abs(cdc_RPL_themes- RPL_themes)) %>% 
   arrange(desc(diff_all))
 
 co_diff20 %>% head(15) %>% kable()
 ```
 
-Taking county GEOID 42067 (the most different between CDC and calculated overall RPLs) as an example, we could compare the values for all variables from SVI:
+Taking county GEOID 42061 as an example, we could compare the values for all variables from SVI (denotation same as above; "diff" column is arranged in descending order):
 
 ```{r}
-diy20 <- result2020_co %>% filter(GEOID == "42067") %>% 
+diy20 <- result2020_co %>% filter(GEOID == "42061") %>% 
   select(-NAME,
     SPL_THEMES = SPL_themes,
     SPL_THEME1 = SPL_theme1,
@@ -164,7 +192,7 @@ diy20 <- result2020_co %>% filter(GEOID == "42067") %>%
   mutate(hSVI = round(hSVI, 4))
 
 
-cdc20 <- svi_pa_2020co %>% filter(GEOID == "42067") %>% 
+cdc20 <- svi_pa_2020co %>% filter(GEOID == "42061") %>% 
   select(-(1:5), -LOCATION, -AREA_SQMI) %>% 
   mutate(GEOID = paste(GEOID)) %>% 
   pivot_longer(-1, names_to = "var_name", values_to = "cSVI")
@@ -172,7 +200,9 @@ cdc20 <- svi_pa_2020co %>% filter(GEOID == "42067") %>%
 diff20 <- diy20 %>% 
   select(-GEOID) %>% 
   left_join(cdc20, by = "var_name") %>% 
-  relocate(GEOID, .before = var_name)
+  relocate(GEOID, .before = var_name) %>% 
+  mutate(diff = abs(hSVI-cSVI)) %>% 
+  arrange(desc(diff))
 
 diff20 %>% kable()
 
