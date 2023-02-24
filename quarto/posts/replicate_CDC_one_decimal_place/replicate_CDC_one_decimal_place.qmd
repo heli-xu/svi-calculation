@@ -1,3 +1,145 @@
 ---
-title: "Adjusting decimal places to replicate CDC SVI"
+title: "Reproducing CDC SVI by Matching Decimal Places"
+subtitle: "with CT-level PA data in 2018"
+author: Heli Xu
+date: "02-24-2023"
+editor: visual
+# format: 
+#   docx:
+#     toc: true
+#     df-print: default
+# execute: 
+#   warning: false
+#   echo: false
+format:
+  html:
+    df-print: kable
+    self-contained: true
+    code-fold: true
+    toc: true
+    toc-location: left
+execute:
+  warning: false
 ---
+
+As mentioned in the previous post, we noticed the minor differences between our calculated result and CDC-release SVI and attributed them to variation in rounding strategies. While CDC keeps one decimal place for EP_variables (using SQL), our calculation does not specify number rounding at that stage and therefore keeps more digits after decimal point. Here, to replicate CDC's approach, we'll modify the calculation with additional rounding for the EP_variables and see how well it reproduces CDC's result.
+
+## Reproducing CDC SVI
+
+We'll take CT-level data for PA in 2018 as an example, and compare our updated result to CDC SVI.
+
+```{r}
+library(tidyverse)
+library(knitr)
+
+result_ct_pa2018 <- readRDS("../../../cdc_us_svi/result/pa_tract_result2018_decimal.rds")
+
+svi_pa_2018 <- read_csv("../../../cdc_us_svi/cdc_svi_2018_pa_ct.csv") %>% 
+  rename(GEOID = FIPS)
+
+join_table <- function(cdc, diy){
+  cdc %>% 
+    select(
+      GEOID,
+      cdc_RPL_themes = RPL_THEMES,
+      cdc_RPL_theme1 = RPL_THEME1,
+      cdc_RPL_theme2 = RPL_THEME2,
+      cdc_RPL_theme3 = RPL_THEME3,
+      cdc_RPL_theme4 = RPL_THEME4
+    ) %>%
+    mutate(GEOID = paste(GEOID)) %>%
+    left_join(
+      diy %>%
+        select(
+          GEOID,
+          RPL_themes,
+          RPL_theme1,
+          RPL_theme2,
+          RPL_theme3,
+          RPL_theme4
+        )
+    ) 
+}
+
+ct_check18 <- join_table(svi_pa_2018, result_ct_pa2018)
+
+ct_check18 %>% 
+  drop_na() %>% 
+  filter_all(all_vars(.>=0)) %>% 
+  ggplot(aes(x = cdc_RPL_themes, y = RPL_themes)) +
+  geom_point(color = "#004C54")+
+  geom_abline(slope = 1, intercept = 0)+
+  labs(title = "CDC vs. calculated CT-level SVI for PA in 2018",
+    subtitle = "Comparison of overall percentile ranking (RPLs)",
+    y = "calculated overall RPL",
+    x = "CDC overall RPL")+
+  theme(plot.title = element_text(size= 15))
+
+
+```
+
+Good news is that the "wandering" data points from the previous post are staying much closer to the line now, with a correlation coefficient of 0.9999995.
+
+Looking at the difference of the two versions of SVI in number:
+
+```{r}
+ct_diff18 <- ct_check18 %>%
+  filter_all(all_vars(.>=0)) %>% 
+  select(GEOID, cdc_RPL_themes, RPL_themes) %>% 
+  mutate(diff_all = abs(cdc_RPL_themes- RPL_themes)) %>% 
+  arrange(desc(diff_all))
+
+ct_diff18 %>% head(15) %>% kable()
+
+```
+
+To look further into the GEOID with the largest differences in RPLs between our calculation and CDC:
+
+```{r}
+options(scipen = 9999)
+
+diy18 <- result_ct_pa2018 %>% filter(GEOID == "42003982200") %>% 
+  select(-NAME,
+    SPL_THEMES = SPL_themes,
+    SPL_THEME1 = SPL_theme1,
+    SPL_THEME2 = SPL_theme2,
+    SPL_THEME3 = SPL_theme3,
+    SPL_THEME4 = SPL_theme4,
+    RPL_THEMES = RPL_themes,
+    RPL_THEME1 = RPL_theme1,
+    RPL_THEME2 = RPL_theme2,
+    RPL_THEME3 = RPL_theme3,
+    RPL_THEME4 = RPL_theme4) %>% 
+  pivot_longer(-1, names_to = "var_name", values_to = "hSVI") %>% 
+  mutate(hSVI = round(hSVI, 4))
+
+
+cdc18 <- svi_pa_2018 %>% filter(GEOID == "42003982200") %>% 
+  select(-(1:5), -LOCATION, -AREA_SQMI) %>% 
+  mutate(GEOID = paste(GEOID)) %>% 
+  pivot_longer(-1, names_to = "var_name", values_to = "cSVI")
+
+diff18 <- diy18 %>% 
+  select(-GEOID) %>% 
+  left_join(cdc18, by = "var_name") %>% 
+  relocate(GEOID, .before = var_name) %>% 
+  mutate(diff = abs(hSVI-cSVI)) %>% 
+  arrange(desc(diff))
+
+diff18 %>% kable()
+
+```
+
+For this tract, it looks like the differences seem to appear from the percentile ranking calculation stage (all variables are identical). We follow CDC's calculation description for all percentile rankings, with the same significant digits and ties method. So the most likely culprit here might be the rounding method.
+
+## Caveat of `round()`
+
+Our calculation specifies decimal places using `round()` , which comes with a tricky situation with rounding off a 5. As mentioned in its documentation (paraphrased):
+
+> the IEC 60559 standard is expected to be used ("go to the even digit"), but `round(0.15, 1)`could be either `0.1` or `0.2`, depending on the OS services and on representation error.
+
+In our case, `round(0.15, 1)` returns `0.1`, but it appears that CDC's rounding would return 0.2. For example, if we have a EP_variable value of 18.15 in our original calculation, it would show up as 18.2 in CDC SVI, whereas it would become 18.1 in our calculation after rounding.
+
+This would only be a problem with numbers with the second digit after the decimal point as 5, and the tract shown above happens not to be affected. But other tracts might have values that are rounded down for our calculation and rounded up for CDC calculation, which in turn leads to differences in percentile rankings of a certain tract among all tracts.
+
+One option is to add a new rounding function to the package, but for now, this is as close as we could reproduce the CDC SVI result, which is not too bad.
