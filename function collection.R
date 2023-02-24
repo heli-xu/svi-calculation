@@ -114,6 +114,7 @@ get_svi <- function(year, data){
 
     svi_epl <-
       svi_e_ep %>%
+      filter(E_TOTPOP > 0) %>%  #added according to documentation (removed from ranking, but kept in table)
       select(GEOID, NAME, all_of(EP_var_name)) %>%   #tidyselect, column or external vector
       pivot_longer(!c(GEOID, NAME),   #all but GEOID and NAME - no need to know total columns
         names_to = "svi_var",
