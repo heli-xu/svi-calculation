@@ -4030,7 +4030,7 @@ vertical-align: -.125em;
 <header id="title-block-header" class="quarto-title-block default toc-left page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Adjusting decimal places to replicate CDC SVI</h1>
+      <h1 class="title">Reproducing CDC SVI by Matching Decimal Places</h1>
             <p class="subtitle lead">with CT-level PA data in 2018</p>
                       </div>
   </div>
@@ -4059,7 +4059,14 @@ vertical-align: -.125em;
   </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
-    
+    <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#reproducing-cdc-svi" id="toc-reproducing-cdc-svi" class="nav-link active" data-scroll-target="#reproducing-cdc-svi">Reproducing CDC SVI</a></li>
+  <li><a href="#caveat-of-round" id="toc-caveat-of-round" class="nav-link" data-scroll-target="#caveat-of-round">Caveat of <code>round()</code></a></li>
+  </ul>
+</nav>
 </nav>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -4071,7 +4078,9 @@ vertical-align: -.125em;
 
 
 <p>As mentioned in the previous post, we noticed the minor differences between our calculated result and CDC-release SVI and attributed them to variation in rounding strategies. While CDC keeps one decimal place for EP_variables (using SQL), our calculation does not specify number rounding at that stage and therefore keeps more digits after decimal point. Here, to replicate CDC’s approach, we’ll modify the calculation with additional rounding for the EP_variables and see how well it reproduces CDC’s result.</p>
-<p>First we’ll take CT-level data for PA in 2018 as an example, and compare our updated result to CDC SVI.</p>
+<section id="reproducing-cdc-svi" class="level2">
+<h2 class="anchored" data-anchor-id="reproducing-cdc-svi">Reproducing CDC SVI</h2>
+<p>We’ll take CT-level data for PA in 2018 as an example, and compare our updated result to CDC SVI.</p>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -4702,13 +4711,19 @@ vertical-align: -.125em;
 </div>
 </div>
 <p>For this tract, it looks like the differences seem to appear from the percentile ranking calculation stage (all variables are identical). We follow CDC’s calculation description for all percentile rankings, with the same significant digits and ties method. So the most likely culprit here might be the rounding method.</p>
+</section>
+<section id="caveat-of-round" class="level2">
+<h2 class="anchored" data-anchor-id="caveat-of-round">Caveat of <code>round()</code></h2>
 <p>Our calculation specifies decimal places using <code>round()</code> , which comes with a tricky situation with rounding off a 5. As mentioned in its documentation (paraphrased):</p>
 <blockquote class="blockquote">
 <p>the IEC 60559 standard is expected to be used (“go to the even digit”), but <code>round(0.15, 1)</code>could be either <code>0.1</code> or <code>0.2</code>, depending on the OS services and on representation error.</p>
 </blockquote>
-<p>In our case, <code>round(0.15, 1)</code> returns <code>0.1</code>, but it appears that CDC’s rounding would return 0.2. For example, if we have a EP_variable value of 18.15 in our original calculation, it would show up as 18.2 in CDC SVI, whereas it would become 18.1 in our calculation after rounding. One option is to add a rounding function to the package, but for now, this is as close as we could replicate the CDC SVI result, which is not too bad.</p>
+<p>In our case, <code>round(0.15, 1)</code> returns <code>0.1</code>, but it appears that CDC’s rounding would return 0.2. For example, if we have a EP_variable value of 18.15 in our original calculation, it would show up as 18.2 in CDC SVI, whereas it would become 18.1 in our calculation after rounding.</p>
+<p>This would only be a problem with numbers with the second digit after the decimal point as 5, and the tract shown above happens not to be affected. But other tracts might have values that are rounded down for our calculation and rounded up for CDC calculation, which in turn leads to differences in percentile rankings of a certain tract among all tracts.</p>
+<p>One option is to add a new rounding function to the package, but for now, this is as close as we could reproduce the CDC SVI result, which is not too bad.</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

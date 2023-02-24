@@ -4093,7 +4093,7 @@ vertical-align: -.125em;
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>svi_pa_2018 <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;../../../cdc_us_svi/cdc_svi_2018_pa_ct.csv&quot;</span>) <span class="sc">%&gt;%</span> </span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">GEOID =</span> FIPS)</span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>bad_tract <span class="ot">=</span> <span class="st">&#39;42071010900&#39;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">#bad_tract = &#39;42071010900&#39;</span></span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">#make a function for joining CDC SVI and our results</span></span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>join_table <span class="ot">&lt;-</span> <span class="cf">function</span>(cdc, diy){</span>
