@@ -30,7 +30,7 @@ result_ct_pa2018 <- readRDS("../../../cdc_us_svi/result/pa_tract_result2018.rds"
 svi_pa_2018 <- read_csv("../../../cdc_us_svi/cdc_svi_2018_pa_ct.csv") %>% 
   rename(GEOID = FIPS)
 
-bad_tract = '42071010900'
+#bad_tract = '42071010900'
 
 #make a function for joining CDC SVI and our results
 join_table <- function(cdc, diy){
