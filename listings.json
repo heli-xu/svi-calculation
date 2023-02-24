@@ -2,9 +2,10 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/replicate_CDC_one_decimal_place/replicate_CDC_one_decimal_place.html",
       "/posts/SVI_validation_cty-ct_why_minor_diff/SVI_validation_diff_cty-ct.html",
-      "/posts/2017to2021_PA_SVI_validation_cty-ct/2017to2021_PA_SVI_validation_cty-ct.html",
-      "/posts/2017to2021_PA_SVI_validation_aggr-zcta/2017to2021_PA_SVI_validation_aggr-zcta.html"
+      "/posts/PA_SVI_validation_cty-ct/PA_SVI_validation_cty-ct.html",
+      "/posts/PA_SVI_validation_aggr-zcta/PA_SVI_validation_aggr-zcta.html"
     ]
   }
 ]
