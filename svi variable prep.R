@@ -83,8 +83,8 @@ var_cal$x2018_table_field_calculation[21] <- var_cal %>%
 #but for E_ and EP_,calculation is complete and matching variable
 #so you could safely filter out x when needed
 
-
-
+#subsetting E_ and EP_ variables
+var_prefix <- c("E_", "EP_")
 
 var_cal2 <- 
   var_cal %>%
