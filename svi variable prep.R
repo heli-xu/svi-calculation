@@ -11,8 +11,8 @@ library(stringr)
 ## EDITS: 2016 and 2014 dictionary use FactFinder to download census data,
 ## which generates column names that don't match variable names
 ## therefore census_var cannot be pulled from table_field_calcualtion
-## used 2018 table_field_calculation instead (check if actual var and calculation changed)
-## added theme info from dictionary though
+## used 2018 data to modify 2016 and 2014 instead 
+## checked if actual var and calculation, theme info changed (no)
 
 
 # import dictionary -------------------------------------------------------
@@ -142,10 +142,9 @@ var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>%
 
 #edits: guess what a var needs changing
 #E_AGE65, EP_AGE65
-#no count data from census, the label "total estimate" is actually a percentage
-#when calculate, we do E_ first, so to make things simpler, 
-#we won't introduce calculation in E_, and keep it the same with EP_
-var_cal_table$x2016_table_field_calculation[8] <- "S0101_C01_028E"
+#when searching for var, don't just look within the original table
+#sometimes count and percentage could be on different table (S0101, S0103etc)
+var_cal_table$x2016_table_field_calculation[8] <- "S0103_C02_001E"
 var_cal_table$x2016_table_field_calculation[23] <- "S0101_C01_028E"
 
 saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2016.rds")
@@ -186,7 +185,7 @@ saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2014.rds")
 theme_var_df <- function(n){
   var_cal2 %>% 
     filter(theme == n) %>%
-    select(x2014_variable_name, census_var) %>% 
+    select(x2016_variable_name, census_var) %>% 
     separate_rows(census_var, sep = " ")  %>% 
     filter(!str_starts(census_var, "E_"),
            !census_var%in%c("","100")) %>% 
