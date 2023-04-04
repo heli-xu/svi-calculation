@@ -176,7 +176,7 @@ var_cal_table$x2014_table_field_calculation[17] <- "DP04_0057E"
 var_cal_table$x2014_table_field_calculation[32] <- "DP04_0057PE"
 #E_AGE65 and EP_AGE65
 #no count data from census, the label "total estimate" is actually a percentage
-var_cal_table$x2014_table_field_calculation[8] <- "S0101_C01_028E"
+var_cal_table$x2014_table_field_calculation[8] <- "S0101_C01_028E * E_TOTPOP / 100"
 var_cal_table$x2014_table_field_calculation[23] <- "S0101_C01_028E"
 
 
@@ -188,7 +188,8 @@ saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2014.rds")
 theme_var_df <- function(n){
   var_cal2 %>% 
     filter(theme == n) %>%
-    select(x2016_variable_name, census_var) %>% 
+    select(1, census_var) %>%  #first column is var_name
+    #use number to make it work for all years
     separate_rows(census_var, sep = " ")  %>% 
     filter(!str_starts(census_var, "E_"),
            !census_var%in%c("","100")) %>% 
