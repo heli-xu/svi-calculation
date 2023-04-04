@@ -107,7 +107,9 @@ get_svi <- function(year, data){
     bind_cols(svi_e, .) %>% 
     #keep the new columns, GEOID, NAME
     select(GEOID, NAME, all_of(var_0_name), all_of(E_var_name), all_of(EP_var_name)) %>% 
-    mutate(across(all_of(EP_var_name), ~ round(.x, 1))) 
+    mutate(across(all_of(EP_var_name), ~ round(.x, 1)),
+      E_AGE65 = case_when(year >= 2017 ~ E_AGE65,
+        TRUE ~ round(E_AGE65, 0)))
   
   
   #x <- svi_e_ep(2014, data, c(1:4))

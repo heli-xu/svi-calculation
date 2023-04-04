@@ -144,7 +144,10 @@ var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>%
 #E_AGE65, EP_AGE65
 #when searching for var, don't just look within the original table
 #sometimes count and percentage could be on different table (S0101, S0103etc)
-var_cal_table$x2016_table_field_calculation[8] <- "S0103_C02_001E"
+#but some of the tables completion level lower, and not on all geo levels
+#For S0103, only available at county level...so not ideal
+#here still using percentage*total population
+var_cal_table$x2016_table_field_calculation[8] <- "S0101_C01_028E * E_TOTPOP / 100"
 var_cal_table$x2016_table_field_calculation[23] <- "S0101_C01_028E"
 
 saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2016.rds")
