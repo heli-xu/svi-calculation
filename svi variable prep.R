@@ -157,7 +157,7 @@ var_cal_table <- readRDS("data/variable_e_ep_calculation_2018.rds") %>%
   rename(x2015_variable_name = x2018_variable_name,
     x2015_table_field_calculation = x2018_table_field_calculation)
 
-var_cal_table$x2015_table_field_calculation[8] <- "S0101_C01_028E"
+var_cal_table$x2015_table_field_calculation[8] <- "S0101_C01_028E * E_TOTPOP / 100"
 var_cal_table$x2015_table_field_calculation[23] <- "S0101_C01_028E"
 
 saveRDS(var_cal_table, file = "data/variable_e_ep_calculation_2015.rds")
