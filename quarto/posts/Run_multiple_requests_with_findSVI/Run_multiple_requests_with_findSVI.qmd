@@ -1,0 +1,119 @@
+---
+title: "Process multiple SVI calculations with findSVI and purrr"
+author: Heli Xu
+date: "05-30-2023"
+editor: visual
+# format: 
+#   docx:
+#     toc: true
+#     df-print: default
+# execute: 
+#   warning: false
+#   echo: false
+format:
+  html:
+    df-print: kable
+    self-contained: true
+    code-fold: true
+    toc: true
+    toc-location: left
+execute:
+  warning: false
+---
+
+```{r install}
+#| eval: FALSE 
+
+install.packages("devtools")
+devtools::install_github("heli-xu/findSVI")
+```
+
+## Make a table for the requests
+
+Based on the [github issue](https://github.com/heli-xu/svi-calculation/issues/3), we'll put the request information in a table for easier access/manipulation later.
+
+```{r}
+library(tidyverse)
+df_request <- tribble(
+  ~state, ~year, ~n,
+  "AZ", 2015, 8,
+  "AZ", 2016, 2,
+  "AZ", 2017, 2,
+  "AZ", 2018, 2,
+  "AZ", 2019, 3,
+  "FL", 2014, 4,
+  "FL", 2015, 8,
+  "GA", 2015, 8,
+  "GA", 2016, 2,
+  "GA", 2017, 2,
+  "GA", 2018, 2,
+  "GA", 2019, 3,
+  "KY", 2012, 4,
+  "KY", 2013, 4,
+  "KY", 2014, 4,
+  "KY", 2015, 8,
+  "MA", 2013, 4,
+  "MA", 2014, 4,
+  "MA", 2015, 8,
+  "MA", 2016, 2,
+  "MA", 2017, 2,
+  "NJ", 2012, 4,
+  "NJ", 2013, 4,
+  "NJ", 2014, 4,
+  "NJ", 2015, 8,
+  "NJ", 2016, 2,
+  "NJ", 2017, 2,
+  "NY", 2017, 4,
+  "NY", 2018, 4
+) %>%
+  select(-n)
+
+df_request
+
+```
+
+## Testing with one request entry
+
+Using [findSVI](https://heli-xu.github.io/findSVI/index.html), we are retrieving ZCTA-level census data of AZ for 2018 and calculating SVI from the census data. Here we'll only include all the ZCTAs(GEOIDs) and RPLs(SVI), leaving out the individual SVI variables and intermediate rankings.
+
+```{r}
+library(findSVI)
+# census_api_key("YOUR KEY GOES HERE")
+data <- findSVI::get_census_data(2018, "zcta", "AZ")
+result <- findSVI::get_svi(2018, data) %>% 
+  select(GEOID, contains('RPL_theme')) %>% 
+  glimpse()
+```
+
+It looks like findSVI is working.
+
+## Iterating all entries with purrr
+
+Now we'll use purrr with findSVI to iterate through all state-year combinations.
+
+```{r}
+#| eval: FALSE
+library(cli)
+
+all_result <- df_request %>%
+  group_by(row_number()) %>%
+  group_map( ~ {
+    year_tmp <- .x$year
+    state_tmp <- .x$state
+    cli_alert("starting pull for {state_tmp} - {year_tmp}")
+    data <- findSVI::get_census_data(year_tmp, "zcta", state_tmp)
+    result <- findSVI::get_svi(year_tmp, data) %>%
+      select(GEOID, contains('RPL_theme')) %>%
+      mutate(year  = year_tmp, state = state_tmp)
+    cli_alert_success("Finished pull for {state_tmp} - {year_tmp}")
+    return(result)
+  }) %>% bind_rows()
+```
+
+```{r}
+#| echo: false
+alina_result <- readRDS("../../../cdc_us_svi/iterated_zcta_result.rds")
+alina_result %>% head(15)
+```
+
+First 15 rows of the result table are shown. In this table, "GEOID" represents the ZCTA, and "RPL\_" columns are the corresponding theme-specific SVI and overall SVI. While results for all requests are summarized in one table, the ranking and calculation is done separately by each request entry (state-year combination). Complete SVI table including information for individual variables in each theme can be obtained with findSVI for specific state-year combination.
