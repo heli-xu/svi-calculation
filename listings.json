@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/Run_multiple_requests_with_findSVI/Run_multiple_requests_with_findSVI.html",
       "/posts/replicate_CDC_one_decimal_place/replicate_CDC_one_decimal_place.html",
       "/posts/SVI_validation_cty-ct_why_minor_diff/SVI_validation_diff_cty-ct.html",
       "/posts/PA_SVI_validation_cty-ct/PA_SVI_validation_cty-ct.html",
