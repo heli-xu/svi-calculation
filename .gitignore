@@ -1,4 +1,5 @@
 findSVI-sticker/
 cdc_us_svi/
 .Rproj.user
-quarto/posts/commute_zone/data/cty_data_2020_geo.rds
+
+quarto/posts/commute_zone/datasets/cty_data_2020_geo.rds
