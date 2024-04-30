@@ -1,2 +1,0 @@
-# svi-calculation
- 

@@ -1,31 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://heli-xu.github.io/svi-calculation/about.html</loc>
-    <lastmod>2023-05-30T21:48:13.734Z</lastmod>
-  </url>
-  <url>
-    <loc>https://heli-xu.github.io/svi-calculation/index.html</loc>
-    <lastmod>2023-05-30T21:48:14.140Z</lastmod>
-  </url>
-  <url>
-    <loc>https://heli-xu.github.io/svi-calculation/posts/PA_SVI_validation_aggr-zcta/PA_SVI_validation_aggr-zcta.html</loc>
-    <lastmod>2023-05-30T21:48:16.872Z</lastmod>
-  </url>
-  <url>
-    <loc>https://heli-xu.github.io/svi-calculation/posts/PA_SVI_validation_cty-ct/PA_SVI_validation_cty-ct.html</loc>
-    <lastmod>2023-05-30T21:48:18.755Z</lastmod>
+    <loc>https://heli-xu.github.io/svi-calculation/posts/SVI_validation_cty-ct_why_minor_diff/SVI_validation_diff_cty-ct.html</loc>
+    <lastmod>2023-02-24T17:25:15.601Z</lastmod>
   </url>
   <url>
     <loc>https://heli-xu.github.io/svi-calculation/posts/replicate_CDC_one_decimal_place/replicate_CDC_one_decimal_place.html</loc>
-    <lastmod>2023-05-30T21:48:20.681Z</lastmod>
+    <lastmod>2023-02-24T17:25:15.601Z</lastmod>
+  </url>
+  <url>
+    <loc>https://heli-xu.github.io/svi-calculation/posts/PA_SVI_validation_aggr-zcta/PA_SVI_validation_aggr-zcta.html</loc>
+    <lastmod>2023-02-24T17:25:15.599Z</lastmod>
+  </url>
+  <url>
+    <loc>https://heli-xu.github.io/svi-calculation/index.html</loc>
+    <lastmod>2023-02-21T22:57:15.306Z</lastmod>
+  </url>
+  <url>
+    <loc>https://heli-xu.github.io/svi-calculation/about.html</loc>
+    <lastmod>2024-04-30T22:30:20.829Z</lastmod>
+  </url>
+  <url>
+    <loc>https://heli-xu.github.io/svi-calculation/posts/commute_zone/commute_zone.html</loc>
+    <lastmod>2024-04-30T22:57:15.641Z</lastmod>
+  </url>
+  <url>
+    <loc>https://heli-xu.github.io/svi-calculation/posts/PA_SVI_validation_cty-ct/PA_SVI_validation_cty-ct.html</loc>
+    <lastmod>2023-02-24T17:25:15.600Z</lastmod>
   </url>
   <url>
     <loc>https://heli-xu.github.io/svi-calculation/posts/Run_multiple_requests_with_findSVI/Run_multiple_requests_with_findSVI.html</loc>
-    <lastmod>2023-05-30T21:48:22.434Z</lastmod>
-  </url>
-  <url>
-    <loc>https://heli-xu.github.io/svi-calculation/posts/SVI_validation_cty-ct_why_minor_diff/SVI_validation_diff_cty-ct.html</loc>
-    <lastmod>2023-05-30T21:48:24.934Z</lastmod>
+    <lastmod>2023-05-30T22:59:21.535Z</lastmod>
   </url>
 </urlset>
