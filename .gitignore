@@ -3,3 +3,4 @@ cdc_us_svi/
 .Rproj.user
 
 quarto/posts/commute_zone/datasets/cty_data_2020_geo.rds
+quarto/posts/commute_zone/datasets/SVI_2020_US_county.csv
