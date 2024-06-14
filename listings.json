@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/validate_find_svi_x/validate_find_svi_x.html",
       "/posts/commute_zone/commute_zone.html",
       "/posts/Run_multiple_requests_with_findSVI/Run_multiple_requests_with_findSVI.html",
       "/posts/replicate_CDC_one_decimal_place/replicate_CDC_one_decimal_place.html",
